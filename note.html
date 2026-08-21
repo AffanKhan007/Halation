@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halation: the flaw that taught us to see — HALATION</title>
+<meta name="description" content="The story of a broken scanner, a red glow, and why we named everything after it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div id="glow" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="scene" viewBox="0 0 480 360">
+    <defs>
+      <linearGradient id="skyG" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#ffe3ae"/><stop offset=".45" stop-color="#f2a65a"/>
+        <stop offset=".75" stop-color="#c65d7b"/><stop offset="1" stop-color="#512b58"/>
+      </linearGradient>
+      <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff3d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="480" height="360" fill="url(#skyG)"/>
+    <circle cx="240" cy="168" r="118" fill="url(#sunGlow)"/>
+    <circle cx="240" cy="168" r="52" fill="#fff0cf"/>
+    <path d="M150 118 q14 -12 28 0 M188 102 q12 -10 24 0" stroke="#5b3350" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M0 250 L110 150 L200 235 L300 130 L400 240 L480 190 L480 360 L0 360 Z" fill="#3a2244"/>
+    <path d="M0 300 L90 235 L210 305 L330 235 L480 300 L480 360 L0 360 Z" fill="#221129"/>
+  </symbol>
+</svg>
+<nav>
+  <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+  <button class="burger" aria-label="menu"><span></span><span></span></button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="playground.html">Playground</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="notes.html" class="active">Notes</a>
+    <a href="login.html" class="nav-enter">Enter</a>
+    <a href="pricing.html" class="btn btn-primary nav-cta small">Go Pro ✦</a>
+  </div>
+</nav>
+<div class="article-head">
+  <a href="notes.html" class="back-link reveal">← all field notes</a>
+  <div class="eyebrow reveal" style="--rd:.06s;margin-top:26px">stories ✦ issue 14</div>
+  <h1 class="reveal" style="--rd:.12s">Halation: the flaw that<br>taught us to see.</h1>
+  <div class="note-meta reveal" style="--rd:.18s"><b>MARCH 2025</b> · 8 MIN READ · THE DARKROOM</div>
+</div>
+<div class="article-hero reveal">
+  <div class="frame">
+    <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)"><use href="#scene"/></svg>
+  </div>
+</div>
+<article class="article-body">
+  <p class="reveal">In the summer of 2021, a secondhand flatbed scanner chewed through a box of family photographs. Most came out streaked, banded, ruined. One came out <b>better than the original</b> — a sunset wrapped in a soft red glow, the kind of warmth no living printer seems able to make anymore.</p>
+  <p class="reveal">That glow has a name. <b>Halation</b> — from the Greek for "the sun's edge." It happens when light pierces all the way through a film's emulsion, strikes the backing, and bounces back, blooming around the brightest points of the image. Film engineers spent decades trying to eliminate it. Photographers spent decades learning to love it.</p>
+  <div class="pull-quote reveal">A photograph without flaws is a sentence without a voice.</div>
+  <p class="reveal">We couldn't stop asking the question that scanner forced on us: <b>why did the error feel more honest than the photograph?</b> The answer, as far as we can tell, is that perfection is information, but flaws are <b>memory</b>. The glow says: light traveled here. It bounced. It fought its way back to the surface. The image carries the story of its own making.</p>
+  <div class="ascii-figure reveal" aria-hidden="true">      \   |   /   —   ( ◉ )   —      light pierces the film      /   |   \  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔      ↘   ↓   ↙       strikes the backing    ✦  halo  ✦        and blooms back</div>
+  <p class="reveal">So we stopped trying to fix the glow and started bottling it. Three years of tuning — hundreds of test frames per recipe, named after the eras they remember. That's why every filter here is called a chemistry, and why the whole project carries the name of a beautiful mistake.</p>
+  <p class="reveal">Bring us your almost-perfect frames. <b>The darkroom light is on.</b></p>
+</article>
+<div class="author-card reveal">
+  <div class="inner">
+    <div class="author-sig" aria-hidden="true">✦</div>
+    <div>
+      <h4>The Darkroom</h4>
+      <p>Written by whoever's hands were stained that day. Field Notes is the HALATION journal — chemistry, technique, and stories from the shelf.</p>
+    </div>
+  </div>
+</div>
+<div class="next-grid">
+  <a href="notes.html" class="card tilt note-card reveal">
+    <div class="card-media">
+      <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-sepia"><use href="#scene"/></svg><div class="scan"></div></div>
+    <div class="card-body">
+      <h3>Mixing Sepia '72: a recipe in four numbers</h3>
+      <div class="note-meta"><b>NEXT</b> · CHEMISTRY · 5 MIN</div>
+    </div>
+  </a>
+  <a href="notes.html" class="card tilt note-card reveal" style="--rd:.1s">
+    <div class="card-media">
+      <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:blur(5px)"><use href="#scene"/></svg><div class="scan"></div></div>
+    <div class="card-body">
+      <h3>Why we blur: softness as storytelling</h3>
+      <div class="note-meta"><b>NEXT</b> · TECHNIQUE · 4 MIN</div>
+    </div>
+  </a>
+</div>
+<section class="final-cta" style="padding-top:90px">
+  <div class="reveal">
+    <h2 class="section-title">Make something<br><em>worth writing about.</em></h2>
+    <a href="playground.html" class="btn btn-primary">Open the darkroom ↗</a>
+  </div>
+</section>
+<footer>
+  <div class="foot-wrap">
+    <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+    <p>filters as art — made with <b>✦</b> in the darkroom</p>
+    <p>© 2025 · no cookies · no accounts · just light</p>
+  </div>
+</footer>
+<div id="toast" role="status"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

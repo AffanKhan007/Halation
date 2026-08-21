@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Notes — HALATION</title>
+<meta name="description" content="Dispatches from the darkroom: filter chemistry, technique, and stories from the HALATION atelier.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div id="glow" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="scene" viewBox="0 0 480 360">
+    <defs>
+      <linearGradient id="skyG" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#ffe3ae"/><stop offset=".45" stop-color="#f2a65a"/>
+        <stop offset=".75" stop-color="#c65d7b"/><stop offset="1" stop-color="#512b58"/>
+      </linearGradient>
+      <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff3d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="480" height="360" fill="url(#skyG)"/>
+    <circle cx="240" cy="168" r="118" fill="url(#sunGlow)"/>
+    <circle cx="240" cy="168" r="52" fill="#fff0cf"/>
+    <path d="M150 118 q14 -12 28 0 M188 102 q12 -10 24 0" stroke="#5b3350" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M0 250 L110 150 L200 235 L300 130 L400 240 L480 190 L480 360 L0 360 Z" fill="#3a2244"/>
+    <path d="M0 300 L90 235 L210 305 L330 235 L480 300 L480 360 L0 360 Z" fill="#221129"/>
+  </symbol>
+</svg>
+<nav>
+  <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+  <button class="burger" aria-label="menu"><span></span><span></span></button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="playground.html">Playground</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="notes.html" class="active">Notes</a>
+    <a href="login.html" class="nav-enter">Enter</a>
+    <a href="pricing.html" class="btn btn-primary nav-cta small">Go Pro ✦</a>
+  </div>
+</nav>
+<div class="page-hero">
+  <div class="eyebrow reveal">field notes — dispatches from the darkroom</div>
+  <h1 class="section-title reveal" style="--rd:.08s">Notes from<br><em>the darkroom.</em></h1>
+  <p class="section-sub reveal" style="--rd:.16s;margin-left:auto;margin-right:auto">Filter chemistry, technique, and the stories behind the frames. Written slowly, like everything else here.</p>
+  <div class="flourish reveal" style="--rd:.24s">✦ ✦ ✦</div>
+</div>
+<section style="padding-top:30px">
+  <div class="wrap">
+    <!-- FEATURED NOTE -->
+    <a href="note.html" class="featured-note reveal" style="display:grid">
+      <div class="featured-media">
+        <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)"><use href="#scene"/></svg>
+        <div class="scan" style="position:absolute;inset:0"></div>
+      </div>
+      <div class="featured-body">
+        <span class="note-chip">✦ featured — stories</span>
+        <h2>Halation: the flaw that taught us to see</h2>
+        <p>In 2021 a broken scanner chewed through a box of family photographs. Most came out ruined. One came out better than the original. This is the story of that red glow — and why we named everything after it.</p>
+        <div class="note-meta"><b>MAR 2025</b> · 8 MIN READ · THE DARKROOM</div>
+        <span class="note-link">read the note <span>→</span></span>
+      </div>
+    </a>
+    <!-- CATEGORY TABS (reuses gallery filtering from app.js) -->
+    <div class="tabs reveal">
+      <button class="tab active" data-tab="all">All · 8</button>
+      <button class="tab" data-tab="chemistry">Chemistry · 3</button>
+      <button class="tab" data-tab="technique">Technique · 3</button>
+      <button class="tab" data-tab="stories">Stories · 2</button>
+    </div>
+    <!-- NOTES GRID -->
+    <div class="gallery-grid">
+      <article class="card tilt note-card g-card reveal" data-cat="chemistry">
+        <div class="card-media"><span class="card-tag tag-free">CHEMISTRY</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-sepia"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>Mixing Sepia '72: a recipe in four numbers</h3>
+          <p>Every bottle on our shelf is a formula. Here's the exact arithmetic of sun-faded warmth.</p>
+          <div class="note-meta"><b>MAR 12</b> · 5 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="technique" style="--rd:.06s">
+        <div class="card-media ascii-media"><span class="card-tag tag-free">TECHNIQUE</span>
+          <pre class="ascii-green">      .  *  .  *   .   *    .   *    .      .  _______  .  *  .-'  _____  '-.  *    /   / ~~~ \   \   |   |  (o)  |   |    \   \_____/   /  ~~~'--._____.--'~~~</pre></div>
+        <div class="card-body">
+          <h3>ASCII from photographs, line by line</h3>
+          <p>Brightness becomes a character, shadows become @. The whole trick, explained slowly.</p>
+          <div class="note-meta"><b>MAR 02</b> · 7 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="technique" style="--rd:.12s">
+        <div class="card-media"><span class="card-tag tag-free">TECHNIQUE</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:blur(5px)"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>Why we blur: softness as storytelling</h3>
+          <p>Sharpness records. Blur remembers. A defense of the out-of-focus frame.</p>
+          <div class="note-meta"><b>FEB 21</b> · 4 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="chemistry" style="--rd:.18s">
+        <div class="card-media"><span class="card-tag tag-free">CHEMISTRY</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:grayscale(1) sepia(1) hue-rotate(185deg) saturate(3.2) contrast(1.15) brightness(.88)"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>Cyanotype, 1842: the blue before fame</h3>
+          <p>Prussian blue prints predated photography's famous names — and outlived most of them.</p>
+          <div class="note-meta"><b>FEB 14</b> · 6 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="stories">
+        <div class="card-media"><span class="card-tag tag-free">STORIES</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:contrast(.8) brightness(1.15) saturate(.6)"><use href="#scene"/></svg><div class="grain-veil"></div><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>A reader's shoebox: restoring 40 sunsets</h3>
+          <p>One reader, one box of faded prints, and a month of evenings in the digital darkroom.</p>
+          <div class="note-meta"><b>FEB 03</b> · 9 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="chemistry" style="--rd:.06s">
+        <div class="card-media"><span class="card-tag tag-free">CHEMISTRY</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:grayscale(1) contrast(1.1)"><use href="#scene"/></svg><div class="duo-veil"></div><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>Duotone posters: two inks, infinite mood</h3>
+          <p>Why the most memorable gig posters in history were printed with almost nothing.</p>
+          <div class="note-meta"><b>JAN 27</b> · 5 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="technique" style="--rd:.12s">
+        <div class="card-media"><span class="card-tag tag-free">TECHNIQUE</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:contrast(.9) sepia(.15) brightness(1.03)"><use href="#scene"/></svg><div class="grain-veil"></div><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>Grain is not noise</h3>
+          <p>Texture carries feeling; artifacts carry error. Learning to tell them apart by eye.</p>
+          <div class="note-meta"><b>JAN 19</b> · 4 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+      <article class="card tilt note-card g-card reveal" data-cat="stories" style="--rd:.18s">
+        <div class="card-media"><span class="card-tag tag-free">STORIES</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-noir"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body">
+          <h3>The ethics of a filter</h3>
+          <p>At what point does a processed photo stop being yours — or stop being true? We asked.</p>
+          <div class="note-meta"><b>JAN 08</b> · 6 MIN</div>
+          <a class="note-link" href="note.html">read <span>→</span></a>
+        </div>
+      </article>
+    </div>
+    <!-- NEWSLETTER -->
+    <div class="letter-box reveal">
+      <div class="ascii-flourish" aria-hidden="true">✦ · ✦ · ✦</div>
+      <h3>The contact sheet — <em>one note a week.</em></h3>
+      <p>New chemistry, technique deep-dives, and reader stories. No spam, no tracking — just light.</p>
+      <form class="letter-form" id="letterForm">
+        <input type="email" id="letterEmail" placeholder="you@night.com" aria-label="email address" required>
+        <button class="btn btn-primary" type="submit">Develop ✦</button>
+      </form>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="foot-wrap">
+    <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+    <p>filters as art — made with <b>✦</b> in the darkroom</p>
+    <p>© 2025 · no cookies · no accounts · just light</p>
+  </div>
+</footer>
+<div id="toast" role="status"></div>
+<script src="js/app.js"></script>
+<script>
+/* newsletter — page-local, uses toast() from app.js */
+(function(){
+  const form = document.getElementById('letterForm');
+  if(!form) return;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const em = document.getElementById('letterEmail');
+    if(em.value && em.value.includes('@')) toast('✦ You’re on the contact sheet — first note Sunday.');
+    else toast('That email looks underexposed ✦ try again');
+  });
+})();
+</script>
+</body>
+</html>

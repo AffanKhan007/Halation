@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — HALATION</title>
+<meta name="description" content="HALATION pricing: the free Sketchbook and the Pro Darkroom. Cancel anytime.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div id="glow" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+
+<nav>
+  <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+  <button class="burger" aria-label="menu"><span></span><span></span></button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="playground.html">Playground</a>
+    <a href="pricing.html" class="active">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="notes.html">Notes</a>
+    <a href="login.html" class="nav-enter">Enter</a>
+    <a href="pricing.html" class="btn btn-primary nav-cta small">Go Pro ✦</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="eyebrow reveal">the key — simple, honest</div>
+  <h1 class="section-title reveal" style="--rd:.08s">Choose your <em>darkroom.</em></h1>
+  <p class="section-sub reveal" style="--rd:.16s;margin-left:auto;margin-right:auto">Start free, forever. Upgrade when your pictures ask for more. Flip the toggle — yearly keeps two months in your pocket.</p>
+  <div class="bill-toggle reveal" style="--rd:.24s">
+    <span id="lblMonth" class="on">monthly</span>
+    <button class="toggle-pill" id="billPill" aria-label="toggle yearly billing"></button>
+    <span id="lblYear">yearly</span>
+    <span class="save-tag">save 25%</span>
+  </div>
+</div>
+
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="price-grid" style="margin-top:0">
+      <div class="plan plan-free reveal">
+        <h3>The Sketchbook</h3><div class="plan-tag">for curious hands</div>
+        <div class="price" data-month="$0" data-year="$0" data-suffix="<small> / forever</small>">$0<small> / forever</small></div>
+        <ul>
+          <li><b>6 core filters</b> — blur, noir, sepia, fade, grain, vignette</li>
+          <li>Exports up to <b>1080p</b></li>
+          <li>Subtle HALATION watermark</li>
+          <li>20 pictures / month</li>
+          <li>Community presets</li>
+        </ul>
+        <a href="playground.html" class="btn btn-ghost">Start free ↗</a>
+      </div>
+      <div class="plan plan-pro reveal" style="--rd:.12s">
+        <div class="plan-ribbon">✦ MOST LOVED</div>
+        <h3>The Darkroom</h3><div class="plan-tag">for working artists</div>
+        <div class="price" data-month="$8" data-year="$6" data-suffix="<small> / month</small>">$8<small> / month</small></div>
+        <ul>
+          <li><b>All 40+ filters</b> + the full ASCII suite</li>
+          <li>Retro film packs — <b>'72, CineStill, Portra</b></li>
+          <li><b>Watermark-free 4K</b> export</li>
+          <li>Unlimited pictures &amp; batch mode</li>
+          <li>Custom filter recipes</li>
+          <li>Early access to new chemistry</li>
+        </ul>
+        <button class="btn btn-primary" data-plan="pro">Unlock the darkroom ✦</button>
+      </div>
+    </div>
+    <p class="price-note reveal" id="billNote">billed monthly, cancel anytime</p>
+
+    <!-- comparison -->
+    <div class="cmp reveal">
+      <table>
+        <thead><tr><th>feature</th><th>sketchbook</th><th>darkroom ✦</th></tr></thead>
+        <tbody>
+          <tr><td>Filters</td><td>6</td><td>40+</td></tr>
+          <tr><td>ASCII suite</td><td>—</td><td>✦</td></tr>
+          <tr><td>Retro film packs</td><td>—</td><td>✦</td></tr>
+          <tr><td>Max export</td><td>1080p</td><td>4K</td></tr>
+          <tr><td>Watermark</td><td>subtle</td><td>none</td></tr>
+          <tr><td>Pictures / month</td><td>20</td><td>unlimited</td></tr>
+          <tr><td>Batch mode</td><td>—</td><td>✦</td></tr>
+          <tr><td>Custom recipes</td><td>—</td><td>✦</td></tr>
+          <tr><td>Support</td><td>community</td><td>priority</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq reveal">
+      <details class="faq-item"><summary>Do my photos ever leave my device?</summary><p>Never. The free darkroom runs entirely in your browser. Pro's ASCII press processes locally too — we simply don't build upload pipelines.</p></details>
+      <details class="faq-item"><summary>Can I cancel anytime?</summary><p>Yes. One click, no emails, no guilt trip. Your Pro exports stay yours forever.</p></details>
+      <details class="faq-item"><summary>Can I use the results commercially?</summary><p>Absolutely — every pixel you export is yours on both plans, watermark aside. Sell prints, ship campaigns, publish books.</p></details>
+      <details class="faq-item"><summary>Is there a student discount?</summary><p>40% off the Darkroom with any student email. Write to us with your .edu and we'll send a key.</p></details>
+      <details class="faq-item"><summary>What if I don't love it?</summary><p>14-day full refund, no questions. Art shouldn't come with regret.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta" style="padding-top:50px">
+  <div class="reveal">
+    <h2 class="section-title">Still deciding?<br><em>Start free.</em></h2>
+    <p>The Sketchbook is genuinely generous. Most artists stay a while before they ever reach for the key.</p>
+    <a href="playground.html" class="btn btn-primary">Open the darkroom ↗</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-wrap">
+    <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+    <p>filters as art — made with <b>✦</b> in the darkroom</p>
+    <p>© 2025 · no cookies · no accounts · just light</p>
+  </div>
+</footer>
+<div id="toast" role="status"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALATION — filters as art</title>
+<meta name="description" content="Turn pixels into poetry. Retro film, ASCII and noir filters — free, in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div id="glow" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="scene" viewBox="0 0 480 360">
+    <defs>
+      <linearGradient id="skyG" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#ffe3ae"/><stop offset=".45" stop-color="#f2a65a"/>
+        <stop offset=".75" stop-color="#c65d7b"/><stop offset="1" stop-color="#512b58"/>
+      </linearGradient>
+      <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff3d6" stop-opacity=".9"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="480" height="360" fill="url(#skyG)"/>
+    <circle cx="240" cy="168" r="118" fill="url(#sunGlow)"/>
+    <circle cx="240" cy="168" r="52" fill="#fff0cf"/>
+    <path d="M150 118 q14 -12 28 0 M188 102 q12 -10 24 0" stroke="#5b3350" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M0 250 L110 150 L200 235 L300 130 L400 240 L480 190 L480 360 L0 360 Z" fill="#3a2244"/>
+    <path d="M0 300 L90 235 L210 305 L330 235 L480 300 L480 360 L0 360 Z" fill="#221129"/>
+  </symbol>
+</svg>
+
+<nav>
+  <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+  <button class="burger" aria-label="menu"><span></span><span></span></button>
+  <div class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="playground.html">Playground</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="notes.html">Notes</a>
+    <a href="login.html" class="nav-enter">Enter</a>
+    <a href="pricing.html" class="btn btn-primary nav-cta small">Go Pro ✦</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div>
+    <div class="badge"><span class="dot"></span> ~/halation v2.4 — darkroom-grade filters, in your browser</div>
+    <h1 class="hero-title">
+      <span class="line" data-split>Turn pixels</span>
+      <span class="line" data-split>into <em>poetry.</em></span>
+    </h1>
+    <p class="hero-sub">Upload a photograph. Choose a soul. <b>HALATION</b> redevelops your images in retro film, ASCII press, silver noir and dreamlike color — no account, no upload servers, just chemistry.</p>
+    <div class="hero-actions">
+      <a href="playground.html" class="btn btn-primary">Start creating — it's free ↗</a>
+      <a href="gallery.html" class="btn btn-ghost">Browse the atelier</a>
+    </div>
+    <div class="hero-stats">
+      <div><b>40<span>+</span></b>handcrafted filters</div>
+      <div><b>192k</b>pictures reborn</div>
+      <div><b>0</b>accounts required</div>
+    </div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-ascii">
+        ·   .   ·    .   ·   .    ·
+   ·       .        ·       .       ·
+          .    ___________    .
+     ·       .'           '.       ·
+    .      .'  ===========  '.      .
+          /    ===========    \
+    ·    |     ===========     |    ·
+          \    ===========    /
+     ·     '.  ===========  .'     ·
+    .        '.___     ___.'        .
+        /\        '---'        /\
+   /\  /  \    /\       /\    /  \  /\
+  /  \/    \  /  \     /  \  /    \/  \
+ /          \/    \___/    \/          \
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</div>
+    <figure class="polaroid pol-1">
+      <div class="ph"><svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-sepia"><use href="#scene"/></svg></div>
+      <figcaption>sepia '72 — free</figcaption>
+    </figure>
+    <figure class="polaroid pol-2">
+      <div class="ph"><svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-noir"><use href="#scene"/></svg></div>
+      <figcaption>silver noir — free</figcaption>
+    </figure>
+  </div>
+</header>
+
+<!-- MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>retro film <i>✦</i></span><span>ascii press <i>✦</i></span><span>silver noir <i>✦</i></span><span>soft blur <i>✦</i></span><span>duotone dream <i>✦</i></span><span>film burn '86 <i>✦</i></span><span>halation bloom <i>✦</i></span><span>sepia '72 <i>✦</i></span>
+    <span>retro film <i>✦</i></span><span>ascii press <i>✦</i></span><span>silver noir <i>✦</i></span><span>soft blur <i>✦</i></span><span>duotone dream <i>✦</i></span><span>film burn '86 <i>✦</i></span><span>halation bloom <i>✦</i></span><span>sepia '72 <i>✦</i></span>
+  </div>
+</div>
+
+<!-- FEATURED FILTERS -->
+<section>
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">✦ 01 — featured chemistry</div>
+      <h2 class="section-title">One photograph,<br><em>eight souls.</em></h2>
+      <p class="section-sub">The same sunset, redeveloped eight ways. Hover to feel each chemistry.</p>
+    </div>
+    <div class="gallery-grid">
+      <article class="card tilt reveal" style="--rd:.0s">
+        <div class="card-media"><span class="card-tag tag-free">FREE</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:blur(5px)"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body"><h3><i>01</i>Soft Blur</h3><p>A gentle focal dream.</p><a class="card-link" href="playground.html">develop →</a></div>
+      </article>
+      <article class="card tilt reveal" style="--rd:.08s">
+        <div class="card-media"><span class="card-tag tag-free">FREE</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-noir"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body"><h3><i>02</i>Silver Noir</h3><p>Monochrome, deep as wet asphalt.</p><a class="card-link" href="playground.html">develop →</a></div>
+      </article>
+      <article class="card tilt reveal" style="--rd:.16s">
+        <div class="card-media"><span class="card-tag tag-pro">PRO ✦</span>
+          <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)"><use href="#scene"/></svg><div class="scan"></div></div>
+        <div class="card-body"><h3><i>03</i>Halation Bloom</h3><p>Red light bleeds like CineStill 800T.</p><a class="card-link" href="playground.html">develop →</a></div>
+      </article>
+      <article class="card tilt reveal" style="--rd:.24s">
+        <div class="card-media ascii-media"><span class="card-tag tag-pro">PRO ✦</span>
+          <pre class="ascii-block">        ░▒▓▓▒░
+      ░▓██████▓░
+     ▒████▓▓████▒
+     ▓███▓▓▓▓███▓
+      ░▓██████▓░
+  ▄█▄ ▄█▄  ▄█▄ ▄█▄
+ ▄███▄███▄▄███▄███▄
+████████████████████</pre></div>
+        <div class="card-body"><h3><i>04</i>ASCII Suite</h3><p>Terminal &amp; block glyph presses.</p><a class="card-link" href="playground.html">develop →</a></div>
+      </article>
+    </div>
+    <div class="reveal" style="text-align:center;margin-top:48px">
+      <a href="gallery.html" class="btn btn-ghost">See all 12 chemistries ↗</a>
+    </div>
+  </div>
+</section>
+
+<!-- TASTE DEMO -->
+<section id="taste" style="background:linear-gradient(180deg,transparent, rgba(240,166,60,.035), transparent)">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">✦ 02 — a taste</div>
+      <h2 class="section-title">Touch the <em>chemistry.</em></h2>
+      <p class="section-sub">A drop from the darkroom. The full editor adds uploads, intensity dials and exports.</p>
+    </div>
+    <div class="play-grid">
+      <div class="reveal">
+        <div class="chip-group" style="margin-top:0">
+          <div class="chip-label">bathe the sample in</div>
+          <div class="chips">
+            <button class="chip mchip active" data-m="none">Original</button>
+            <button class="chip mchip" data-m="noir">Silver Noir</button>
+            <button class="chip mchip" data-m="sepia">Sepia '72</button>
+            <button class="chip mchip" data-m="blur">Soft Blur</button>
+            <button class="chip mchip" data-m="fade">Morning Fade</button>
+          </div>
+        </div>
+        <div class="play-actions"><a href="playground.html" class="btn btn-primary">Open the full darkroom ↗</a></div>
+      </div>
+      <div class="reveal" style="--rd:.15s">
+        <div class="stage-frame">
+          <svg id="miniStage" class="subject" viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="transition:filter .6s var(--ease)"><use href="#scene"/></svg>
+        </div>
+        <div class="stage-caption"><div>sample — <b>the endless sunset</b></div><div>free ✓</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STEPS + STATS -->
+<section>
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">✦ 03 — the ritual</div>
+      <h2 class="section-title">Three steps to <em>alchemy.</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal" style="--rd:.0s"><div class="num">01</div><h3>Upload</h3><p>Drop any picture into the darkroom. JPG, PNG, HEIC — it never leaves your device.</p></div>
+      <div class="step reveal" style="--rd:.12s"><div class="num">02</div><h3>Transform</h3><p>Sweep through the atelier: film stocks, ASCII presses, noir chemistry and bloom.</p></div>
+      <div class="step reveal" style="--rd:.24s"><div class="num">03</div><h3>Export</h3><p>Take it with you. Watermark-free 4K on Pro — ready for print, feed, or gallery.</p></div>
+    </div>
+    <div class="stats-band reveal">
+      <div><b>40+</b><span>filters</span></div>
+      <div><b>192k</b><span>pictures reborn</span></div>
+      <div><b>0</b><span>servers touched</span></div>
+      <div><b>4.9✦</b><span>artist rating</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING TEASER -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="reveal" style="text-align:center">
+      <div class="eyebrow">✦ 04 — the key</div>
+      <h2 class="section-title">Free forever.<br><em>Pro when you're ready.</em></h2>
+    </div>
+    <div class="price-grid">
+      <div class="plan plan-free reveal">
+        <h3>The Sketchbook</h3><div class="plan-tag">for curious hands</div>
+        <div class="price">$0<small> / forever</small></div>
+        <ul><li><b>6 core filters</b>, forever free</li><li>Exports up to <b>1080p</b></li><li>20 pictures / month</li></ul>
+        <a href="playground.html" class="btn btn-ghost">Start free ↗</a>
+      </div>
+      <div class="plan plan-pro reveal" style="--rd:.12s">
+        <div class="plan-ribbon">✦ MOST LOVED</div>
+        <h3>The Darkroom</h3><div class="plan-tag">for working artists</div>
+        <div class="price">$8<small> / month</small></div>
+        <ul><li><b>All 40+ filters</b> + ASCII suite</li><li><b>Watermark-free 4K</b> export</li><li>Unlimited pictures &amp; batch mode</li></ul>
+        <a href="pricing.html" class="btn btn-primary">See full plans ✦</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="reveal">
+    <h2 class="section-title">Every photograph deserves<br><em>a second life.</em></h2>
+    <p>Bring us your shoebox sunsets, your blurry ghosts, your almost-perfect frames.</p>
+    <a href="playground.html" class="btn btn-primary">Open the darkroom — free ↗</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-wrap">
+    <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+    <p>filters as art — made with <b>✦</b> in the darkroom</p>
+    <p>© 2025 · no cookies · no accounts · just light</p>
+  </div>
+</footer>
+<div id="toast" role="status"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enter — HALATION</title>
+<meta name="description" content="Enter the HALATION darkroom, or continue as a free guest.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div id="glow" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+
+<nav>
+  <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+  <button class="burger" aria-label="menu"><span></span><span></span></button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="gallery.html">Gallery</a>
+    <a href="playground.html">Playground</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="notes.html">Notes</a>
+    <a href="login.html" class="nav-enter active">Enter</a>
+    <a href="pricing.html" class="btn btn-primary nav-cta small">Go Pro ✦</a>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-card reveal">
+    <div class="auth-art" aria-hidden="true">    .-------.
+   /  .---.  \
+  |  (  ✦  )  |
+   \  '---'  /
+    '-------'
+   THE DOOR</div>
+    <h2>The darkroom door</h2>
+    <p class="sub">members save their shelf · guests develop freely</p>
+
+    <div class="auth-tabs">
+      <button class="active" data-form="in">enter</button>
+      <button data-form="up">join</button>
+    </div>
+
+    <form class="auth-form" id="formIn">
+      <div class="field"><label for="inEmail">email</label>
+        <input id="inEmail" type="email" placeholder="you@night.com" required></div>
+      <div class="field"><label for="inPass">password</label>
+        <input id="inPass" type="password" placeholder="••••••••" required></div>
+      <button class="btn btn-primary" type="submit" style="width:100%">Step inside ✦</button>
+    </form>
+
+    <form class="auth-form hide" id="formUp">
+      <div class="field"><label for="upName">artist name</label>
+        <input id="upName" type="text" placeholder="your name" required></div>
+      <div class="field"><label for="upEmail">email</label>
+        <input id="upEmail" type="email" placeholder="you@night.com" required></div>
+      <div class="field"><label for="upPass">password</label>
+        <input id="upPass" type="password" placeholder="••••••••" required></div>
+      <button class="btn btn-primary" type="submit" style="width:100%">Light the safelight ✦</button>
+    </form>
+
+    <p class="auth-alt">just passing through? <a href="playground.html">develop as a guest →</a></p>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-wrap">
+    <a href="index.html" class="logo">HALATION<b> ✳</b></a>
+    <p>filters as art — made with <b>✦</b> in the darkroom</p>
+    <p>© 2025 · no cookies · no accounts · just light</p>
+  </div>
+</footer>
+<div id="toast" role="status"></div>
+<script src="js/app.js"></script>
+</body>
+</html>
