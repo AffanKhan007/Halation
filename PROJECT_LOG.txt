@@ -1,0 +1,31 @@
+HALATION — PROJECT PROGRESS & PROMPT LOG
+=========================================
+(This file is NOT part of the website. It is only a notes/scratch file
+and is never loaded or referenced by any page.)
+
+BRANCH: v2  (mirrors main; all new work happens here)
+
+---------------------------------------------------------
+PROGRESS
+---------------------------------------------------------
+- Static site scaffolded: css/styles.css + js/app.js + 6 pages
+- pages: index, gallery, playground, pricing, about, login
+- Field Notes blog added: notes.html (listing) + note.html (article)
+- Notes nav link inserted into all 6 existing page navs
+- Category tabs on notes.html reuse gallery's .tab / .g-card filter logic
+- Newsletter form on notes.html uses shared toast()
+
+---------------------------------------------------------
+PROMPTS / DECISIONS
+---------------------------------------------------------
+- Frontend-only: plain HTML + CSS + vanilla JS. No frameworks,
+  no build tools, no backend. Do not scaffold for later stacks.
+- Copy provided CSS/JS/HTML character-for-character; do not restyle
+  or "improve" unless explicitly asked.
+- All inter-page links are relative.
+
+---------------------------------------------------------
+TODO / NEXT
+---------------------------------------------------------
+
+
