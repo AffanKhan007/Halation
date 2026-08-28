@@ -27,7 +27,7 @@
       'uniform sampler2D uImg,uAtlas;'+
       'uniform vec2 uCanvas,uCells;uniform float uGamma;'+
       'void main(){'+
-      ' vec2 px=vec2(gl_FragCoord.x,uCanvas.y-gl_FragCoord.y);'+
+      ' vec2 px=gl_FragCoord.xy;'+
       ' vec2 cs=uCanvas/uCells;vec2 cell=floor(px/cs);'+
       ' vec3 c=texture2D(uImg,(cell+.5)/uCells).rgb;'+
       ' float l=pow(dot(c,vec3(.299,.587,.114)),uGamma);'+

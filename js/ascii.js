@@ -203,45 +203,62 @@
         if(v) ctx.fillText(String.fromCharCode(0x2800+v), x*cw, y*fontSize);
       }
     }
-    /* --- STRUCTURE : smoothed Sobel, adaptive thresholds, tone fill --- */
+    /* --- STRUCTURE : 2× supersampled Sobel, percentile thresholds --- */
     else if(M.edge){
-      /* 1) noise-killing 3×3 pre-smooth */
-      const S=new Float32Array(N);
-      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
-        const i=y*cols+x;
-        S[i]=(L[i-cols-1]+L[i-cols]+L[i-cols+1]+L[i-1]+L[i]+L[i+1]+L[i+cols-1]+L[i+cols]+L[i+cols+1])/9;
+      const ew=cols*2, eh=rows*2;
+      const ec=sampleSmooth(src, ew, eh);
+      const ed=ec.getContext('2d',{willReadFrequently:true}).getImageData(0,0,ew,eh).data;
+      let E=new Float32Array(ew*eh);
+      for(let i=0;i<ew*eh;i++) E[i]=.299*ed[i*4]+.587*ed[i*4+1]+.114*ed[i*4+2];
+      /* two denoise passes so grain never becomes fake edges */
+      for(let p=0;p<2;p++){
+        const T=new Float32Array(ew*eh);
+        for(let y=1;y<eh-1;y++) for(let x=1;x<ew-1;x++){
+          const i=y*ew+x;
+          T[i]=(E[i-ew-1]+E[i-ew]+E[i-ew+1]+E[i-1]+E[i]+E[i+1]+E[i+ew-1]+E[i+ew]+E[i+ew+1])/9;
+        }
+        E=T;
       }
-      /* 2) Sobel magnitudes + adaptive thresholds */
-      const MAG=new Float32Array(N); let mMax=0;
-      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
-        const i=y*cols+x;
-        const gx=(S[i-cols+1]+2*S[i+1]+S[i+cols+1])-(S[i-cols-1]+2*S[i-1]+S[i+cols-1]);
-        const gy=(S[i+cols-1]+2*S[i+cols]+S[i+cols+1])-(S[i-cols-1]+2*S[i-cols]+S[i-cols+1]);
+      /* Sobel gradients + magnitudes */
+      const MAG=new Float32Array(ew*eh), GXa=new Float32Array(ew*eh), GYa=new Float32Array(ew*eh);
+      const mags=[];
+      for(let y=1;y<eh-1;y++) for(let x=1;x<ew-1;x++){
+        const i=y*ew+x;
+        const gx=(E[i-ew+1]+2*E[i+1]+E[i+ew+1])-(E[i-ew-1]+2*E[i-1]+E[i+ew-1]);
+        const gy=(E[i+ew-1]+2*E[i+ew]+E[i+ew+1])-(E[i-ew-1]+2*E[i-ew]+E[i-ew+1]);
+        GXa[i]=gx; GYa[i]=gy;
         const m=Math.sqrt(gx*gx+gy*gy);
-        MAG[i]=m; if(m>mMax) mMax=m;
+        MAG[i]=m; if(m>0) mags.push(m);
       }
-      const strong=mMax*.32, weak=mMax*.10;
-      /* 3) faint tonal fill first (depth under the linework) */
-      ctx.fillStyle='rgba(36,26,16,.14)';
+      /* PERCENTILE thresholds: robust on any photograph */
+      mags.sort((a,b)=>a-b);
+      const hi=mags[Math.floor(mags.length*.985)]||1;
+      const strong=hi*.30, weak=hi*.12;
+      /* luminance-proportional tone fill = depth under the linework */
       for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
         const i=y*cols+x;
-        if(MAG[i]<=weak && L[i]<140) ctx.fillText('.', x*cw, y*fontSize);
+        const a=(1-L[i]/255)*.22;
+        if(a>.05){ ctx.fillStyle='rgba(36,26,16,'+a.toFixed(3)+')'; ctx.fillText('.', x*cw, y*fontSize); }
       }
-      /* 4) directional strokes on strong edges */
-      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
-        const i=y*cols+x;
-        const m=MAG[i];
-        if(m<=weak) continue;
-        const gx=(S[i-cols+1]+2*S[i+1]+S[i+cols+1])-(S[i-cols-1]+2*S[i-1]+S[i+cols-1]);
-        const gy=(S[i+cols-1]+2*S[i+cols]+S[i+cols+1])-(S[i-cols-1]+2*S[i-cols]+S[i-cols+1]);
-        let ch;
-        if(m>=strong){
-          if(Math.abs(gy)>Math.abs(gx)*1.6) ch='-';
-          else if(Math.abs(gx)>Math.abs(gy)*1.6) ch='|';
-          else ch=(gx*gy>0)?'/':'\\';
+      /* strokes: strongest edge sample inside each 2×2 cell block */
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        let best=0,bx=0,by=0;
+        for(let dy=0;dy<2;dy++) for(let dx=0;dx<2;dx++){
+          const ei=(y*2+dy)*ew+(x*2+dx);
+          if(MAG[ei]>best){ best=MAG[ei]; bx=GXa[ei]; by=GYa[ei]; }
+        }
+        if(best<=weak) continue;
+        if(best>=strong){
+          let ch;
+          if(Math.abs(by)>Math.abs(bx)*1.5) ch='-';
+          else if(Math.abs(bx)>Math.abs(by)*1.5) ch='|';
+          else ch=(bx*by>0)?'/':'\\';
           ctx.fillStyle=M.fg;
-        } else { ch='.'; ctx.fillStyle='rgba(36,26,16,.35)'; }
-        ctx.fillText(ch, x*cw, y*fontSize);
+          ctx.fillText(ch, x*cw, y*fontSize);
+        } else {
+          ctx.fillStyle='rgba(36,26,16,.4)';
+          ctx.fillText('·', x*cw, y*fontSize);
+        }
       }
     }
     /* --- SILK HD : half-block characters, 2 pixels per cell --- */
@@ -271,10 +288,27 @@
         ctx.fillText(proseChar(level), x*cw, y*fontSize);
       }
     }
+    /* --- BINARY : Bayer 4×4 ordered dither — 1s build the light,
+         faint 0s fill the shadows like a data field --- */
+    else if(M.bayer){
+      const B4=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        const i=y*cols+x;
+        const v=L[i]/255;
+        const th=(B4[(y&3)*4+(x&3)]+.5)/16;
+        if(v>th){
+          ctx.fillStyle='rgba(159,232,160,'+(0.35+v*.65).toFixed(3)+')';
+          ctx.fillText('1', x*cw, y*fontSize);
+        } else if(v>.06){
+          ctx.fillStyle='rgba(159,232,160,.14)';
+          ctx.fillText('0', x*cw, y*fontSize);
+        }
+      }
+    }
     /* --- classic ramp plates --- */
     else {
-      if(M.ramp===null && !customRamp) buildCustomRamp();
-      const ramp = M.ramp===null ? customRamp : M.ramp;
+      if(M.ramp==null && !customRamp) buildCustomRamp();
+      const ramp = M.ramp==null ? customRamp : M.ramp;
       const len = ramp.length;
       if(M.dither){
         const step=256/len;
@@ -325,54 +359,78 @@
   }
   function stopAnim(){ if(animId){ cancelAnimationFrame(animId); animId=null; } }
 
-  /* --- MATRIX DIGITAL RAIN : brightness-gated falling katakana --- */
+  /* --- MATRIX DIGITAL RAIN : the photo gates the storm --- */
   const KATA='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789';
-  let drops=null;
+  let drops=null, mBase=null, mBaseFor=null;
   STEP.matrix=function(ctx){
     if(!lastGrid) return;
     const R=lastGrid.rows;
-    if(!drops || drops.length!==cols){
-      drops=new Array(cols).fill(0).map(()=>({y:Math.random()*-R, s:.3+Math.random()*.8, c:KATA[Math.random()*KATA.length|0]}));
+    /* build a ghost hologram of the photo once per image */
+    if(mBaseFor!==lastGrid){
+      mBaseFor=lastGrid;
+      mBase=document.createElement('canvas');
+      mBase.width=Math.max(1,Math.round(cols*cwG));
+      mBase.height=Math.max(1,Math.round(R*fsG));
+      const bctx=mBase.getContext('2d');
+      bctx.font=fsG+'px "Space Mono",monospace'; bctx.textBaseline='top';
+      const RAMP10=' .:-=+*#%@';
+      for(let y=0;y<R;y++) for(let x=0;x<cols;x++){
+        const lum=lastGrid.L[y*cols+x]/255;
+        if(lum<.15) continue;
+        bctx.fillStyle='rgba(70,160,80,'+(0.05+lum*.22).toFixed(3)+')';
+        bctx.fillText(RAMP10[Math.min(9,(lum*10)|0)], x*cwG, y*fsG);
+      }
     }
-    ctx.fillStyle='rgba(2,6,2,.16)';
+    if(!drops || drops.length!==cols){
+      drops=new Array(cols).fill(0).map(()=>({y:Math.random()*-R, s:.25+Math.random()*.75, c:KATA[(Math.random()*KATA.length)|0]}));
+    }
+    ctx.fillStyle='rgba(2,6,2,.20)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
+    /* the uploaded photograph, ghosted beneath the rain */
+    ctx.save(); ctx.globalAlpha=.5;
+    ctx.drawImage(mBase,0,0,cols*cwG,R*fsG);
+    ctx.restore();
     ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
     for(let x=0;x<cols;x++){
       const d=drops[x];
       d.y+=d.s;
-      if(d.y>R+6){ d.y=Math.random()*-R; d.s=.3+Math.random()*.8; }
+      if(d.y>R+6){ d.y=Math.random()*-R; d.s=.25+Math.random()*.75; }
       const yi=Math.floor(d.y);
       if(yi<0||yi>=R) continue;
       const lum=lastGrid.L[yi*cols+x]/255;
-      if(Math.random()<.07) d.c=KATA[Math.random()*KATA.length|0];
-      ctx.fillStyle='rgba(120,255,140,'+(0.10+lum*.85).toFixed(3)+')';
+      if(lum<.10) continue;   /* dark pixels = no rain, ever */
+      if(Math.random()<.07) d.c=KATA[(Math.random()*KATA.length)|0];
+      const a=.12+Math.pow(lum,1.3)*.88;
+      ctx.fillStyle='rgba(120,255,140,'+a.toFixed(3)+')';
       ctx.fillText(d.c, x*cwG, yi*fsG);
-      if(lum>.55){
+      if(lum>.5){
         ctx.save();
         ctx.shadowColor='rgba(140,255,160,.9)'; ctx.shadowBlur=8;
         ctx.fillStyle='rgba(225,255,225,'+(lum*.9).toFixed(3)+')';
-        ctx.fillText(KATA[Math.random()*KATA.length|0], x*cwG, yi*fsG);
+        ctx.fillText(KATA[(Math.random()*KATA.length)|0], x*cwG, yi*fsG);
         ctx.restore();
       }
     }
   };
 
-  /* --- EMBER : fire simulation seeded by the image --- */
+  /* --- EMBER : the photograph itself burns --- */
   let heat=null;
   STEP.ember=function(ctx){
     if(!lastGrid) return;
     const R=lastGrid.rows, Nn=cols*R;
     if(!heat || heat.length!==Nn) heat=new Float32Array(Nn);
-    /* seed heat from photograph luminance + flicker */
+    /* coal bed: EVERY pixel glows by its own light, full frame */
     for(let i=0;i<Nn;i++){
       const lum=lastGrid.L[i]/255;
-      heat[i]=Math.max(heat[i]*.55, lum*(140+Math.random()*115));
+      const bed=lum*230;
+      heat[i]=Math.max(heat[i]*.55+bed*.35, bed*(.7+Math.random()*.55));
     }
-    /* fire rises: pull from below with drift and random cooling */
+    /* flames lick upward: gentle cooling + horizontal shimmer */
     for(let y=0;y<R-1;y++) for(let x=0;x<cols;x++){
-      const s=Math.max(0,Math.min(cols-1, x+(Math.random()<.4?(Math.random()<.5?-1:1):0)));
-      const up=heat[(y+1)*cols+s]-Math.random()*18;
-      if(up>heat[y*cols+x]) heat[y*cols+x]=up;
+      const i=y*cols+x;
+      const s=Math.max(0,Math.min(cols-1, x+(Math.random()<.5?(Math.random()<.5?-1:1):0)));
+      const up=heat[(y+1)*cols+s]*.94 - 3 - Math.random()*7;
+      if(up>heat[i]) heat[i]=up;
     }
     ctx.fillStyle='#050201'; ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
@@ -384,12 +442,12 @@
     const PALRGB=STEP._pal;
     for(let y=0;y<R;y++) for(let x=0;x<cols;x++){
       const h=heat[y*cols+x];
+      if(h<14) continue;
       const t9=Math.min(9.999, h/256*10);
-      const i0=t9|0, fr=t9-i0;
-      if(i0<1) continue;
-      const a=PALRGB[i0], b=PALRGB[i0+1];
+      const i0=Math.max(1,t9|0), fr=t9-(t9|0);
+      const a=PALRGB[i0], b=PALRGB[i0+1]||a;
       ctx.fillStyle='rgb('+((a[0]+(b[0]-a[0])*fr)|0)+','+((a[1]+(b[1]-a[1])*fr)|0)+','+((a[2]+(b[2]-a[2])*fr)|0)+')';
-      ctx.fillText(RAMP[i0], x*cwG, y*fsG);
+      ctx.fillText(h<40?'.':RAMP[i0], x*cwG, y*fsG);
     }
   };
 
