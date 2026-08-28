@@ -33,24 +33,25 @@
   };
   let mode='terminal', cols=110, glyphs='HALATION✦';
   let aside=false, busy=false, customRamp=null;
-  let animId=null, lastGrid=null, cwG=9.6, fsG=16;
-  let loL=0, spanL=255, exportScale=1;
+  let animId=null, lastGrid=null, cwG=9.6, fsG=16, fwG=0, fhG=0, dprG=1;
+  let loL=0, spanL=255;
   const STEP={};
   const intSlider = document.getElementById('intensity');
 
   /* --- turn the current subject (img or sample svg) into an Image --- */
   function getSource(cb){
     const s = document.querySelector('#stageMedia .subject');
-    if(!s) return;
+    if(!s){ cb(null); return; }
     if(s.tagName === 'IMG'){ cb(s); return; }
     const sym = document.getElementById('scene');
-    if(!sym) return;
+    if(!sym){ cb(null); return; }
     try{
       const str = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="960" height="720">' + sym.innerHTML + '</svg>';
       const im = new Image();
       im.onload = ()=> cb(im);
+      im.onerror = ()=> cb(null);
       im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
-    }catch(e){ console.warn(e); }
+    }catch(e){ console.warn(e); cb(null); }
   }
 
   /* progressive-halving downsample = moiré-free area averaging */
@@ -66,63 +67,79 @@
       c=n; sw=c.width; sh=c.height;
     }
     const f=document.createElement('canvas'); f.width=w; f.height=h;
-    f.getContext('2d').drawImage(c,0,0,w,h);
+    const fctx=f.getContext('2d');
+    fctx.imageSmoothingEnabled=true;
+    fctx.imageSmoothingQuality='high';
+    fctx.drawImage(c,0,0,w,h);
     return f;
+  }
+
+  /* --- shared helpers --- */
+  const glyphMeter = document.createElement('canvas');
+  glyphMeter.width = glyphMeter.height = 32;
+  const glyphMeterCtx = glyphMeter.getContext('2d', {willReadFrequently:true});
+  /* measure a glyph's visual weight: ink coverage (pixels above alpha threshold) */
+  function measureGlyph(ch){
+    glyphMeterCtx.clearRect(0,0,32,32);
+    glyphMeterCtx.fillStyle='#fff';
+    glyphMeterCtx.font='24px "Space Mono",monospace';
+    glyphMeterCtx.textAlign='center';
+    glyphMeterCtx.textBaseline='middle';
+    glyphMeterCtx.fillText(ch,16,16);
+    const d=glyphMeterCtx.getImageData(0,0,32,32).data; let n=0;
+    for(let i=3;i<d.length;i+=4) if(d[i]>64) n++;
+    return n;
+  }
+  /* #rrggbb → rgba() string */
+  function hexToRgba(hex, a){
+    const h=hex.replace('#','');
+    const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+  /* proper HSL saturation boost (no clipping) */
+  function saturateRGB(r,g,b,f){
+    r/=255; g/=255; b/=255;
+    const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2;
+    let h=0, s=0;
+    if(mx!==mn){
+      const d=mx-mn;
+      s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      if(mx===r) h=(g-b)/d+(g<b?6:0);
+      else if(mx===g) h=(b-r)/d+2;
+      else h=(r-g)/d+4;
+      h/=6;
+    }
+    s=Math.min(1, s*f);
+    let r2,g2,b2;
+    if(s===0){ r2=g2=b2=l; }
+    else{
+      const q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+      const hue2rgb=t=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+      r2=hue2rgb(h+1/3); g2=hue2rgb(h); b2=hue2rgb(h-1/3);
+    }
+    return [Math.round(r2*255), Math.round(g2*255), Math.round(b2*255)];
   }
 
   /* --- measure each custom glyph's visual weight, sort light→dark --- */
   function buildCustomRamp(){
-    const chars = [...new Set(glyphs.split(''))].filter(c=>c.trim());
-    if(!chars.length){ customRamp='@'; return; }
-    const mc = document.createElement('canvas'); mc.width=mc.height=28;
-    const m = mc.getContext('2d', {willReadFrequently:true});
-    const scored = chars.map(ch=>{
-      m.clearRect(0,0,28,28);
-      m.fillStyle='#fff'; m.font='22px "Space Mono",monospace'; m.textBaseline='middle';
-      m.fillText(ch,3,15);
-      const d=m.getImageData(0,0,28,28).data; let n=0;
-      for(let i=3;i<d.length;i+=4) n+=d[i];
-      return {ch,n};
-    }).sort((a,b)=>a.n-b.n);
-    customRamp = scored.map(s=>s.ch).join('') + '█';
+    const rawChars = [...new Set(glyphs.split(''))];
+    const nonSpace = rawChars.filter(c=>c.trim().length > 0);
+    if(!nonSpace.length){ customRamp=' @'; return; }
+    const scored = nonSpace.map(ch=>({ch, n:measureGlyph(ch)})).sort((a,b)=>a.n-b.n);
+    const hasHeavy = scored.some(s=>s.n >= 50 || s.ch==='█' || s.ch==='@' || s.ch==='#');
+    customRamp = ' ' + scored.map(s=>s.ch).join('') + (hasHeavy ? '' : '█');
   }
 
-  /* --- MANUSCRIPT : photo written from the user's text --- */
+  /* --- MANUSCRIPT : prose optical density ramp builder --- */
   let proseText='In the darkroom every photograph waits for its second life, and light remembers what the eye forgets.';
-  let proseMap=null, proseBuckets=null, proseCursor=0;
-  function buildProse(){
-    const uniq=[...new Set(proseText.replace(/\s+/g,'').split(''))];
-    if(!uniq.length){ proseMap=null; proseBuckets=null; return; }
-    const mc=document.createElement('canvas'); mc.width=mc.height=28;
-    const m=mc.getContext('2d',{willReadFrequently:true});
-    const scored=uniq.map(ch=>{
-      m.clearRect(0,0,28,28); m.fillStyle='#fff';
-      m.font='22px "Space Mono",monospace'; m.textBaseline='middle';
-      m.fillText(ch,3,15);
-      const d=m.getImageData(0,0,28,28).data; let n=0;
-      for(let i=3;i<d.length;i+=4) n+=d[i];
-      return {ch,n};
-    }).sort((a,b)=>a.n-b.n);
-    const B=7;
-    proseMap=new Map(); proseBuckets=[];
-    for(let b=0;b<B;b++) proseBuckets.push([]);
-    scored.forEach((s,i)=>{
-      const b=Math.min(B-1, Math.floor(i/scored.length*B));
-      proseMap.set(s.ch,b); proseBuckets[b].push(s.ch);
-    });
-    proseCursor=0;
-  }
-  function proseChar(level){
-    if(!proseMap) return '@';
-    for(let k=0;k<proseText.length;k++){
-      const idx=(proseCursor+k)%proseText.length;
-      const ch=proseText[idx];
-      if(/\s/.test(ch)) continue;
-      const b=proseMap.get(ch);
-      const slack=k>120?2:k>60?1:0;
-      if(b!==undefined && Math.abs(b-level)<=slack){ proseCursor=(idx+1)%proseText.length; return ch; }
-    }
-    return proseBuckets[level].length?proseBuckets[level][0]:'@';
+  let proseRamp=null;
+  function buildProseRamp(){
+    const raw = (proseText && proseText.trim().length > 0) ? proseText.trim() : 'HALATION';
+    const uniq = [...new Set(raw.split(''))];
+    const nonSpace = uniq.filter(c => c.trim().length > 0);
+    if(!nonSpace.length){ proseRamp=' .o@'; return; }
+    const scored = nonSpace.map(ch => ({ ch, n: measureGlyph(ch) })).sort((a, b) => a.n - b.n);
+    proseRamp = ' ' + scored.map(s => s.ch).join('');
   }
 
   /* --- the engine --- */
@@ -130,14 +147,17 @@
     if(busy || aside) return;
     if(MODES[mode] && MODES[mode].external) return;
     busy = true;
-    getSource(src=>{ try{ paint(src); }catch(e){ console.warn(e); } busy=false; });
+    getSource(src=>{
+      try{ if(src) paint(src); }catch(e){ console.warn(e); }
+      busy=false;
+    });
   }
 
-  function paint(src){
+  function paint(src, scale, fit){
     const M = MODES[mode];
     const iw = src.naturalWidth || 960, ih = src.naturalHeight || 720;
 
-    const fontSize = 16*exportScale;
+    const fontSize = 16*(scale||1);
     const ctx = canvas.getContext('2d');
     ctx.font = fontSize + 'px "Space Mono",monospace';
     const cw = ctx.measureText('M').width;
@@ -150,14 +170,11 @@
 
     const N = cols*rows;
     const L = new Float32Array(N), R = new Uint8ClampedArray(N), G = new Uint8ClampedArray(N), B = new Uint8ClampedArray(N);
-    let mean = 0;
     for(let i=0;i<N;i++){
       const r=data[i*4], g=data[i*4+1], b=data[i*4+2];
       R[i]=r; G[i]=g; B[i]=b;
       L[i] = .299*r + .587*g + .114*b;
-      mean += L[i];
     }
-    mean /= N;
 
     /* percentile auto-levels: consistent contrast on ANY photograph */
     const sorted = Float32Array.from(L).sort();
@@ -172,15 +189,22 @@
     for(let i=0;i<N;i++) L[i] = 255*Math.pow(L[i]/255, gamma);
     lastGrid = {L:L.slice(), rows, cols};
 
-    const dpr = Math.min(3, (window.devicePixelRatio||1)*exportScale);
+    const dpr = Math.min(3, (window.devicePixelRatio||1)*(scale||1));
     const W = cols*cw, H = rows*fontSize;
-    canvas.width  = Math.round(W*dpr);
-    canvas.height = Math.round(H*dpr);
+    const fw = (fit===false) ? W : (frame.clientWidth || W);
+    const fh = (fit===false) ? H : (frame.clientHeight || H);
+    fwG=fw; fhG=fh; dprG=dpr;
+    const s = (fit===false) ? 1 : Math.min(fw/W, fh/H);
+    const ox = (fw - W*s)/2, oy = (fh - H*s)/2;
+    canvas.width  = Math.round(fw*dpr);
+    canvas.height = Math.round(fh*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.font = fontSize + 'px "Space Mono",monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = M.bg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, fw, fh);
+    ctx.translate(ox, oy);
+    ctx.scale(s, s);
     if(M.anim) return;   /* animated plates draw themselves each frame */
 
     /* --- BRAILLE HD : 1 char = 2×4 pixels --- */
@@ -190,74 +214,186 @@
       const bc=sampleSmooth(src, sw, sh);
       const bctx=bc.getContext('2d',{willReadFrequently:true});
       const bd=bctx.getImageData(0,0,sw,sh).data;
-      let bm=0; for(let p=0;p<bd.length;p+=4) bm+=.299*bd[p]+.587*bd[p+1]+.114*bd[p+2];
-      bm/=(bd.length/4);
+      const lum=new Float32Array(sw*sh);
+      for(let p=0;p<sw*sh;p++) lum[p]=.299*bd[p*4]+.587*bd[p*4+1]+.114*bd[p*4+2];
+      /* local-mean adaptive threshold: preserves edges & contours */
+      const blur=new Float32Array(sw*sh);
+      const RAD=2;
+      for(let y=0;y<sh;y++) for(let x=0;x<sw;x++){
+        let sum=0,cnt=0;
+        for(let dy=-RAD;dy<=RAD;dy++) for(let dx=-RAD;dx<=RAD;dx++){
+          const yy=y+dy, xx=x+dx;
+          if(yy<0||yy>=sh||xx<0||xx>=sw) continue;
+          sum+=lum[yy*sw+xx]; cnt++;
+        }
+        blur[y*sw+x]=sum/cnt;
+      }
       ctx.fillStyle = M.fg;
       for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
         let v=0;
         for(let dy=0;dy<4;dy++) for(let dx=0;dx<2;dx++){
-          const p=((y*4+dy)*sw + (x*2+dx))*4;
-          const lum=.299*bd[p]+.587*bd[p+1]+.114*bd[p+2];
-          if(lum < bm) v |= BITS[dy*2+dx];
+          const p=(y*4+dy)*sw + (x*2+dx);
+          if(lum[p] > blur[p]+3 || lum[p] > 140) v |= BITS[dy*2+dx];
         }
         if(v) ctx.fillText(String.fromCharCode(0x2800+v), x*cw, y*fontSize);
       }
     }
-    /* --- STRUCTURE : 2× supersampled Sobel, percentile thresholds --- */
+    /* --- STRUCTURE : Master Architectural & Pen-and-Ink Engraving --- */
     else if(M.edge){
       const ew=cols*2, eh=rows*2;
       const ec=sampleSmooth(src, ew, eh);
       const ed=ec.getContext('2d',{willReadFrequently:true}).getImageData(0,0,ew,eh).data;
-      let E=new Float32Array(ew*eh);
+      const E=new Float32Array(ew*eh);
       for(let i=0;i<ew*eh;i++) E[i]=.299*ed[i*4]+.587*ed[i*4+1]+.114*ed[i*4+2];
-      /* two denoise passes so grain never becomes fake edges */
-      for(let p=0;p<2;p++){
-        const T=new Float32Array(ew*eh);
-        for(let y=1;y<eh-1;y++) for(let x=1;x<ew-1;x++){
-          const i=y*ew+x;
-          T[i]=(E[i-ew-1]+E[i-ew]+E[i-ew+1]+E[i-1]+E[i]+E[i+1]+E[i+ew-1]+E[i+ew]+E[i+ew+1])/9;
+
+      /* 1. Clamped Gaussian Blur (5x5 separable kernel: [1, 4, 6, 4, 1]) */
+      const tempB=new Float32Array(ew*eh);
+      const B=new Float32Array(ew*eh);
+      for(let y=0;y<eh;y++){
+        const row=y*ew;
+        for(let x=0;x<ew;x++){
+          let sum=0;
+          for(let dx=-2;dx<=2;dx++){
+            const cx=Math.max(0,Math.min(ew-1, x+dx));
+            const w=(dx===0)?6:(Math.abs(dx)===1)?4:1;
+            sum += E[row+cx]*w;
+          }
+          tempB[row+x]=sum/16;
         }
-        E=T;
       }
-      /* Sobel gradients + magnitudes */
+      for(let y=0;y<eh;y++){
+        for(let x=0;x<ew;x++){
+          let sum=0;
+          for(let dy=-2;dy<=2;dy++){
+            const cy=Math.max(0,Math.min(eh-1, y+dy));
+            const w=(dy===0)?6:(Math.abs(dy)===1)?4:1;
+            sum += tempB[cy*ew+x]*w;
+          }
+          B[y*ew+x]=sum/16;
+        }
+      }
+
+      /* 2. High-precision Sobel Gradients (with border clamping) */
       const MAG=new Float32Array(ew*eh), GXa=new Float32Array(ew*eh), GYa=new Float32Array(ew*eh);
-      const mags=[];
-      for(let y=1;y<eh-1;y++) for(let x=1;x<ew-1;x++){
-        const i=y*ew+x;
-        const gx=(E[i-ew+1]+2*E[i+1]+E[i+ew+1])-(E[i-ew-1]+2*E[i-1]+E[i+ew-1]);
-        const gy=(E[i+ew-1]+2*E[i+ew]+E[i+ew+1])-(E[i-ew-1]+2*E[i-ew]+E[i-ew+1]);
-        GXa[i]=gx; GYa[i]=gy;
-        const m=Math.sqrt(gx*gx+gy*gy);
-        MAG[i]=m; if(m>0) mags.push(m);
-      }
-      /* PERCENTILE thresholds: robust on any photograph */
-      mags.sort((a,b)=>a-b);
-      const hi=mags[Math.floor(mags.length*.985)]||1;
-      const strong=hi*.30, weak=hi*.12;
-      /* luminance-proportional tone fill = depth under the linework */
-      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
-        const i=y*cols+x;
-        const a=(1-L[i]/255)*.22;
-        if(a>.05){ ctx.fillStyle='rgba(36,26,16,'+a.toFixed(3)+')'; ctx.fillText('.', x*cw, y*fontSize); }
-      }
-      /* strokes: strongest edge sample inside each 2×2 cell block */
-      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
-        let best=0,bx=0,by=0;
-        for(let dy=0;dy<2;dy++) for(let dx=0;dx<2;dx++){
-          const ei=(y*2+dy)*ew+(x*2+dx);
-          if(MAG[ei]>best){ best=MAG[ei]; bx=GXa[ei]; by=GYa[ei]; }
+      for(let y=0;y<eh;y++){
+        const yTop=Math.max(0,y-1)*ew;
+        const yMid=y*ew;
+        const yBot=Math.min(eh-1,y+1)*ew;
+        for(let x=0;x<ew;x++){
+          const xL=Math.max(0,x-1);
+          const xR=Math.min(ew-1,x+1);
+          const gx=(B[yTop+xR]+2*B[yMid+xR]+B[yBot+xR]) - (B[yTop+xL]+2*B[yMid+xL]+B[yBot+xL]);
+          const gy=(B[yBot+xL]+2*B[yBot+x]+B[yBot+xR]) - (B[yTop+xL]+2*B[yTop+x]+B[yTop+xR]);
+          const i=y*ew+x;
+          GXa[i]=gx;
+          GYa[i]=gy;
+          MAG[i]=Math.sqrt(gx*gx+gy*gy);
         }
-        if(best<=weak) continue;
-        if(best>=strong){
+      }
+
+      /* 3. Non-maximum suppression */
+      const NMS=new Float32Array(ew*eh);
+      for(let y=1;y<eh-1;y++){
+        const row=y*ew;
+        for(let x=1;x<ew-1;x++){
+          const i=row+x, m=MAG[i];
+          if(m<10){ NMS[i]=0; continue; }
+          let a=Math.atan2(GYa[i],GXa[i]);
+          if(a<0) a+=Math.PI;
+          let n1=0, n2=0;
+          if(a<Math.PI/8 || a>=7*Math.PI/8){
+            n1=MAG[i-1]; n2=MAG[i+1];
+          } else if(a<3*Math.PI/8){
+            n1=MAG[i-ew+1]; n2=MAG[i+ew-1];
+          } else if(a<5*Math.PI/8){
+            n1=MAG[i-ew]; n2=MAG[i+ew];
+          } else {
+            n1=MAG[i-ew-1]; n2=MAG[i+ew+1];
+          }
+          NMS[i]=(m>=n1 && m>=n2)?m:0;
+        }
+      }
+
+      /* 4. Adaptive Hysteresis thresholds based on surviving magnitude distribution */
+      const mags=[];
+      for(let i=0;i<ew*eh;i++) if(NMS[i]>8) mags.push(NMS[i]);
+      mags.sort((a,b)=>a-b);
+      const hi=mags.length ? mags[Math.floor(mags.length*0.55)] : 22;
+      const lo=hi*0.35;
+
+      /* 5. Hysteresis edge tracking */
+      const EDGE=new Uint8Array(ew*eh), stack=[];
+      for(let i=0;i<ew*eh;i++) if(NMS[i]>=hi){ EDGE[i]=1; stack.push(i); }
+      while(stack.length){
+        const i=stack.pop(), x=i%ew, y=(i/ew)|0;
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+          if(dx===0 && dy===0) continue;
+          const nx=x+dx, ny=y+dy;
+          if(nx<0||nx>=ew||ny<0||ny>=eh) continue;
+          const ni=ny*ew+nx;
+          if(EDGE[ni]===0 && NMS[ni]>=lo){ EDGE[ni]=1; stack.push(ni); }
+        }
+      }
+
+      /* 6. Volumetric Cross-Hatch & Tonal Depth (paper: #efe4cd, fg: #241a10) */
+      for(let y=0;y<rows;y++){
+        for(let x=0;x<cols;x++){
+          const i=y*cols+x;
+          const lum=L[i];
+          if(lum>225) continue; // Clean highlight
+          let toneChar='', toneAlpha=0.2;
+          if(lum<=50){
+            toneChar='#'; toneAlpha=0.50;
+          } else if(lum<=100){
+            toneChar='+'; toneAlpha=0.38;
+          } else if(lum<=150){
+            toneChar=':'; toneAlpha=0.28;
+          } else if(lum<=195){
+            toneChar='.'; toneAlpha=0.20;
+          } else {
+            toneChar='.'; toneAlpha=0.12;
+          }
+          if(toneChar){
+            ctx.fillStyle=hexToRgba(M.fg, toneAlpha.toFixed(2));
+            ctx.fillText(toneChar, x*cw, y*fontSize);
+          }
+        }
+      }
+
+      /* 7. Rich Architectural Strokes & Corners */
+      for(let y=0;y<rows;y++){
+        for(let x=0;x<cols;x++){
+          let bestMag=0, bx=0, by=0, edgeCount=0;
+          for(let dy=0;dy<2;dy++){
+            for(let dx=0;dx<2;dx++){
+              const ei=(y*2+dy)*ew+(x*2+dx);
+              if(EDGE[ei]){
+                edgeCount++;
+                if(MAG[ei]>bestMag){
+                  bestMag=MAG[ei];
+                  bx=GXa[ei];
+                  by=GYa[ei];
+                }
+              }
+            }
+          }
+          if(bestMag<=0) continue;
+
           let ch;
-          if(Math.abs(by)>Math.abs(bx)*1.5) ch='-';
-          else if(Math.abs(bx)>Math.abs(by)*1.5) ch='|';
-          else ch=(bx*by>0)?'/':'\\';
+          if(edgeCount>=3){
+            ch='+';
+          } else {
+            const absX=Math.abs(bx), absY=Math.abs(by);
+            if(absY>absX*1.5){
+              ch='-';
+            } else if(absX>absY*1.5){
+              ch='|';
+            } else {
+              ch=(bx*by>0)?'/':'\\';
+            }
+          }
           ctx.fillStyle=M.fg;
           ctx.fillText(ch, x*cw, y*fontSize);
-        } else {
-          ctx.fillStyle='rgba(36,26,16,.4)';
-          ctx.fillText('·', x*cw, y*fontSize);
         }
       }
     }
@@ -276,16 +412,127 @@
         ctx.fillText('\u2580', x*cw, y*fontSize);
       }
     }
-    /* --- MANUSCRIPT : typewriter stream matched to luminance --- */
+    /* --- MANUSCRIPT : Master Typewriter Prose Calligram --- */
     else if(M.text){
-      if(!proseMap) buildProse();
-      const B=7;
-      ctx.fillStyle=M.fg;
-      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
-        const i=y*cols+x;
-        const level=Math.min(B-1, Math.floor((255-L[i])/256*B));
-        if(level===0) continue;
-        ctx.fillText(proseChar(level), x*cw, y*fontSize);
+      if(!proseRamp) buildProseRamp();
+      const ramp = proseRamp;
+      const rLen = ramp.length;
+
+      /* 1. Detect Background Polarity (Dark BG Graphic vs Light BG Photo) */
+      let borderSum = 0, borderCount = 0;
+      for(let x = 0; x < cols; x++){
+        borderSum += L[x] + L[(rows - 1) * cols + x];
+        borderCount += 2;
+      }
+      for(let y = 1; y < rows - 1; y++){
+        borderSum += L[y * cols] + L[y * cols + (cols - 1)];
+        borderCount += 2;
+      }
+      const avgBorderLum = borderSum / borderCount;
+      const isDarkBg = avgBorderLum < 85;
+
+      /* 2. Sub-Pixel Difference of Gaussians (DoG) for Razor-Sharp Edge Contours */
+      const ew = cols * 2, eh = rows * 2;
+      const ec = sampleSmooth(src, ew, eh);
+      const ed = ec.getContext('2d', {willReadFrequently:true}).getImageData(0, 0, ew, eh).data;
+      const E = new Float32Array(ew * eh);
+      for(let i = 0; i < ew * eh; i++) E[i] = .299 * ed[i * 4] + .587 * ed[i * 4 + 1] + .114 * ed[i * 4 + 2];
+
+      // Narrow Gaussian G1 (3x3)
+      const G1 = new Float32Array(ew * eh);
+      for(let y = 0; y < eh; y++){
+        const yTop = Math.max(0, y - 1) * ew;
+        const yMid = y * ew;
+        const yBot = Math.min(eh - 1, y + 1) * ew;
+        for(let x = 0; x < ew; x++){
+          const xL = Math.max(0, x - 1);
+          const xR = Math.min(ew - 1, x + 1);
+          const sum = E[yTop + xL] + 2 * E[yTop + x] + E[yTop + xR] +
+                      2 * E[yMid + xL] + 4 * E[yMid + x] + 2 * E[yMid + xR] +
+                      E[yBot + xL] + 2 * E[yBot + x] + E[yBot + xR];
+          G1[yMid + x] = sum / 16;
+        }
+      }
+
+      // Wide Gaussian G2 (5x5 separable)
+      const tempG2 = new Float32Array(ew * eh);
+      const G2 = new Float32Array(ew * eh);
+      for(let y = 0; y < eh; y++){
+        const row = y * ew;
+        for(let x = 0; x < ew; x++){
+          let sum = 0;
+          for(let dx = -2; dx <= 2; dx++){
+            const cx = Math.max(0, Math.min(ew - 1, x + dx));
+            const w = (dx === 0) ? 6 : (Math.abs(dx) === 1) ? 4 : 1;
+            sum += E[row + cx] * w;
+          }
+          tempG2[row + x] = sum / 16;
+        }
+      }
+      for(let y = 0; y < eh; y++){
+        for(let x = 0; x < ew; x++){
+          let sum = 0;
+          for(let dy = -2; dy <= 2; dy++){
+            const cy = Math.max(0, Math.min(eh - 1, y + dy));
+            const w = (dy === 0) ? 6 : (Math.abs(dy) === 1) ? 4 : 1;
+            sum += tempG2[cy * ew + x] * w;
+          }
+          G2[y * ew + x] = sum / 16;
+        }
+      }
+
+      // Difference of Gaussians & Sobel Edge Magnitude
+      const edgeScore = new Float32Array(cols * rows);
+      for(let y = 0; y < rows; y++){
+        const yTop = Math.max(0, y * 2 - 1) * ew;
+        const yMid = (y * 2) * ew;
+        const yBot = Math.min(eh - 1, y * 2 + 1) * ew;
+        for(let x = 0; x < cols; x++){
+          const xL = Math.max(0, x * 2 - 1);
+          const xR = Math.min(ew - 1, x * 2 + 1);
+          
+          const dogTL = G1[yTop + xL] - 0.96 * G2[yTop + xL];
+          const dogTR = G1[yTop + xR] - 0.96 * G2[yTop + xR];
+          const dogML = G1[yMid + xL] - 0.96 * G2[yMid + xL];
+          const dogMR = G1[yMid + xR] - 0.96 * G2[yMid + xR];
+          const dogBL = G1[yBot + xL] - 0.96 * G2[yBot + xL];
+          const dogBR = G1[yBot + xR] - 0.96 * G2[yBot + xR];
+          const dogTC = G1[yTop + x * 2] - 0.96 * G2[yTop + x * 2];
+          const dogBC = G1[yBot + x * 2] - 0.96 * G2[yBot + x * 2];
+          
+          const gx = (dogTR + 2 * dogMR + dogBR) - (dogTL + 2 * dogML + dogBL);
+          const gy = (dogBL + 2 * dogBC + dogBR) - (dogTL + 2 * dogTC + dogTR);
+          const mag = Math.sqrt(gx * gx + gy * gy);
+          edgeScore[y * cols + x] = Math.min(1.0, mag / 2.0);
+        }
+      }
+
+      /* 3. Dithered Typographic Prose Rendering on Paper */
+      const T = new Float32Array(cols * rows);
+      for(let i = 0; i < cols * rows; i++){
+        const lum = L[i];
+        const tone = isDarkBg ? (lum / 255.0) : ((255.0 - lum) / 255.0);
+        const edge = edgeScore[i];
+        T[i] = Math.max(0, Math.min(1.0, Math.pow(tone, 1.1) * 0.90 + Math.pow(edge, 0.85) * 0.40));
+      }
+
+      ctx.fillStyle = M.fg;
+      for(let y = 0; y < rows; y++){
+        for(let x = 0; x < cols; x++){
+          const i = y * cols + x;
+          const val = T[i];
+          if(val < 0.06) continue; // Clean highlight paper
+
+          // Map continuous density to the sorted prose character ramp
+          const idx = Math.min(rLen - 1, Math.floor(val * rLen));
+          const ch = ramp[idx];
+          if(!ch || ch === ' ') continue;
+
+          // Render ink with tonal opacity for beautiful depth
+          const alpha = (val >= 0.70) ? 1.0 : (0.40 + 0.60 * (val / 0.70));
+          ctx.fillStyle = (alpha >= 0.95) ? M.fg : hexToRgba(M.fg, alpha.toFixed(2));
+          ctx.fillText(ch, x * cw, y * fontSize);
+        }
       }
     }
     /* --- BINARY : Bayer 4×4 ordered dither — 1s build the light,
@@ -336,8 +583,8 @@
         const ch = ramp[Math.min(len-1, Math.floor(lum/256*len))];
         if(!ch || ch===' ') continue;
         if(M.color){
-          const mx=Math.max(R[i],G[i],B[i]), f=1.3;
-          ctx.fillStyle='rgb('+Math.min(255,mx+(R[i]-mx)*f)+','+Math.min(255,mx+(G[i]-mx)*f)+','+Math.min(255,mx+(B[i]-mx)*f)+')';
+          const [cr,cg,cb]=saturateRGB(R[i],G[i],B[i],1.3);
+          ctx.fillStyle='rgb('+cr+','+cg+','+cb+')';
         } else ctx.fillStyle=M.fg;
         ctx.fillText(ch, x*cw, y*fontSize);
       }
@@ -345,8 +592,11 @@
 
     /* CRT scanlines */
     if(M.crt){
+      ctx.save();
+      ctx.setTransform(dpr,0,0,dpr,0,0);
       ctx.fillStyle='rgba(0,0,0,.22)';
-      for(let y=0;y<canvas.height;y+=3) ctx.fillRect(0,y,canvas.width,1);
+      for(let y=0;y<fh;y+=3) ctx.fillRect(0,y,fw,1);
+      ctx.restore();
     }
   }
 
@@ -384,8 +634,11 @@
     if(!drops || drops.length!==cols){
       drops=new Array(cols).fill(0).map(()=>({y:Math.random()*-R, s:.25+Math.random()*.75, c:KATA[(Math.random()*KATA.length)|0]}));
     }
+    ctx.save();
+    ctx.setTransform(dprG,0,0,dprG,0,0);
     ctx.fillStyle='rgba(2,6,2,.20)';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillRect(0,0,fwG,fhG);
+    ctx.restore();
     /* the uploaded photograph, ghosted beneath the rain */
     ctx.save(); ctx.globalAlpha=.5;
     ctx.drawImage(mBase,0,0,cols*cwG,R*fsG);
@@ -432,7 +685,10 @@
       const up=heat[(y+1)*cols+s]*.94 - 3 - Math.random()*7;
       if(up>heat[i]) heat[i]=up;
     }
-    ctx.fillStyle='#050201'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.save();
+    ctx.setTransform(dprG,0,0,dprG,0,0);
+    ctx.fillStyle='#050201'; ctx.fillRect(0,0,fwG,fhG);
+    ctx.restore();
     ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
     const RAMP=' .:-=+*%#@';
     if(!STEP._pal){
@@ -479,9 +735,8 @@
   function doExport(){
     if(mode==='gpu' && window.GpuAscii) return GpuAscii.export();
     getSource(src=>{
-      exportScale=2;
-      try{ paint(src); }catch(e){ console.warn(e); }
-      exportScale=1;
+      if(!src) return;
+      try{ paint(src, 2, false); }catch(e){ console.warn(e); }
       canvas.toBlob(b=>{
         const a=document.createElement('a');
         a.download='halation-ascii-'+mode+'.png';
@@ -527,10 +782,11 @@
     .observe(document.getElementById('stageMedia'), {childList:true});
 
   buildCustomRamp();
+  buildProseRamp();
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{ if(isActive() && !aside) render(); });
   }
   const pi=document.getElementById('proseInput');
-  if(pi){ let d; pi.addEventListener('input', ()=>{ clearTimeout(d); d=setTimeout(()=>{ proseText=pi.value||'@'; buildProse(); if(mode==='manuscript') render(); },300); }); }
+  if(pi){ let d; pi.addEventListener('input', ()=>{ clearTimeout(d); d=setTimeout(()=>{ proseText=pi.value||'@'; buildProseRamp(); if(mode==='manuscript') render(); },250); }); }
   window.HalationASCII = { open, close, sync, setAside, render, export: doExport };
 })();
