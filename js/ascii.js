@@ -18,22 +18,23 @@
     amber   :{ramp:' .:-=+*#%@', fg:'#ffc86b', bg:'#0a0703', crt:true},
     blocks  :{ramp:' ░▒▓█',      fg:'#f0a63c', bg:'#060402'},
     color   :{ramp:' .:-=+*#%@', color:true,   bg:'#060402'},
-    braille :{braille:true,      fg:'#7dd87a', bg:'#060402', crt:true},
-    binary  :{ramp:' 1',         fg:'#9fe8a0', bg:'#060402', crt:true},
-    sketch  :{edge:true,         fg:'#241a10', bg:'#efe4cd'},
+    braille :{braille:true,      fg:'#7dd87a', bg:'#060402', crt:true, cols:140},
+    binary  :{bayer:true,        fg:'#9fe8a0', bg:'#060402', crt:true},
+    sketch  :{edge:true,         fg:'#241a10', bg:'#efe4cd', cols:120},
     paper   :{ramp:' .:-=+*#%@', fg:'#241a10', bg:'#efe4cd', flip:true},
     halftone:{ramp:' .·:oO●',    fg:'#efe4cd', bg:'#060402'},
     dither  :{ramp:' .·:oO0@',   fg:'#efe4cd', bg:'#060402', dither:true},
     custom  :{ramp:null,         fg:'#ffc86b', bg:'#060402'},
-    matrix  :{anim:true,                       bg:'#020602'},
+    matrix  :{anim:true,                       bg:'#020602', cols:120},
     ember   :{anim:true,                       bg:'#050201'},
-    manuscript:{text:true,       fg:'#3a2a18', bg:'#efe4cd'},
-    silk    :{half:true,                      bg:'#060402'},
+    manuscript:{text:true,       fg:'#3a2a18', bg:'#efe4cd', cols:100},
+    silk    :{half:true,                      bg:'#060402', cols:140},
     gpu     :{external:true},
   };
   let mode='terminal', cols=110, glyphs='HALATION✦';
   let aside=false, busy=false, customRamp=null;
   let animId=null, lastGrid=null, cwG=9.6, fsG=16;
+  let loL=0, spanL=255, exportScale=1;
   const STEP={};
   const intSlider = document.getElementById('intensity');
 
@@ -50,6 +51,23 @@
       im.onload = ()=> cb(im);
       im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
     }catch(e){ console.warn(e); }
+  }
+
+  /* progressive-halving downsample = moiré-free area averaging */
+  function sampleSmooth(src, w, h){
+    const nw=src.naturalWidth||src.width||960, nh=src.naturalHeight||src.height||720;
+    let sw=Math.min(nw,1600), sh=Math.max(1,Math.round(sw*nh/nw));
+    let c=document.createElement('canvas'); c.width=sw; c.height=sh;
+    c.getContext('2d').drawImage(src,0,0,sw,sh);
+    while(sw/2>=w){
+      const n=document.createElement('canvas');
+      n.width=Math.max(w,sw>>1); n.height=Math.max(h,sh>>1);
+      n.getContext('2d').drawImage(c,0,0,n.width,n.height);
+      c=n; sw=c.width; sh=c.height;
+    }
+    const f=document.createElement('canvas'); f.width=w; f.height=h;
+    f.getContext('2d').drawImage(c,0,0,w,h);
+    return f;
   }
 
   /* --- measure each custom glyph's visual weight, sort light→dark --- */
@@ -85,7 +103,7 @@
       for(let i=3;i<d.length;i+=4) n+=d[i];
       return {ch,n};
     }).sort((a,b)=>a.n-b.n);
-    const B=5;
+    const B=7;
     proseMap=new Map(); proseBuckets=[];
     for(let b=0;b<B;b++) proseBuckets.push([]);
     scored.forEach((s,i)=>{
@@ -119,7 +137,7 @@
     const M = MODES[mode];
     const iw = src.naturalWidth || 960, ih = src.naturalHeight || 720;
 
-    const fontSize = 16;
+    const fontSize = 16*exportScale;
     const ctx = canvas.getContext('2d');
     ctx.font = fontSize + 'px "Space Mono",monospace';
     const cw = ctx.measureText('M').width;
@@ -127,10 +145,8 @@
     const rows = Math.max(8, Math.round(cols * (ih/iw) * (cw/fontSize)));
 
     /* sample the image down to text resolution */
-    const sc = document.createElement('canvas'); sc.width=cols; sc.height=rows;
-    const sctx = sc.getContext('2d', {willReadFrequently:true});
-    sctx.drawImage(src, 0, 0, cols, rows);
-    const data = sctx.getImageData(0, 0, cols, rows).data;
+    const sc = sampleSmooth(src, cols, rows);
+    const data = sc.getContext('2d', {willReadFrequently:true}).getImageData(0, 0, cols, rows).data;
 
     const N = cols*rows;
     const L = new Float32Array(N), R = new Uint8ClampedArray(N), G = new Uint8ClampedArray(N), B = new Uint8ClampedArray(N);
@@ -143,81 +159,110 @@
     }
     mean /= N;
 
+    /* percentile auto-levels: consistent contrast on ANY photograph */
+    const sorted = Float32Array.from(L).sort();
+    loL = sorted[Math.floor(N*.02)];
+    const hiL = sorted[Math.min(N-1, Math.floor(N*.98))];
+    spanL = Math.max(24, hiL-loL);
+    for(let i=0;i<N;i++) L[i]=Math.max(0,Math.min(255,(L[i]-loL)*255/spanL));
+
     /* intensity slider = ink density (gamma) */
     const t = intSlider ? intSlider.value/100 : 1;
     const gamma = 1.7 - t*1.2;
     for(let i=0;i<N;i++) L[i] = 255*Math.pow(L[i]/255, gamma);
     lastGrid = {L:L.slice(), rows, cols};
 
-    canvas.width  = Math.round(cols*cw);
-    canvas.height = Math.round(rows*fontSize);
+    const dpr = Math.min(3, (window.devicePixelRatio||1)*exportScale);
+    const W = cols*cw, H = rows*fontSize;
+    canvas.width  = Math.round(W*dpr);
+    canvas.height = Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.font = fontSize + 'px "Space Mono",monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = M.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, W, H);
     if(M.anim) return;   /* animated plates draw themselves each frame */
 
     /* --- BRAILLE HD : 1 char = 2×4 pixels --- */
     if(M.braille){
       const BITS = [0x01,0x08,0x02,0x10,0x04,0x20,0x40,0x80];
       const sw=cols*2, sh=rows*4;
-      const bc=document.createElement('canvas'); bc.width=sw; bc.height=sh;
+      const bc=sampleSmooth(src, sw, sh);
       const bctx=bc.getContext('2d',{willReadFrequently:true});
-      bctx.drawImage(src,0,0,sw,sh);
       const bd=bctx.getImageData(0,0,sw,sh).data;
+      let bm=0; for(let p=0;p<bd.length;p+=4) bm+=.299*bd[p]+.587*bd[p+1]+.114*bd[p+2];
+      bm/=(bd.length/4);
       ctx.fillStyle = M.fg;
       for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
         let v=0;
         for(let dy=0;dy<4;dy++) for(let dx=0;dx<2;dx++){
           const p=((y*4+dy)*sw + (x*2+dx))*4;
           const lum=.299*bd[p]+.587*bd[p+1]+.114*bd[p+2];
-          if(lum < mean) v |= BITS[dy*2+dx];
+          if(lum < bm) v |= BITS[dy*2+dx];
         }
         if(v) ctx.fillText(String.fromCharCode(0x2800+v), x*cw, y*fontSize);
       }
     }
-    /* --- STRUCTURE : true Sobel operator, angle-mapped strokes --- */
+    /* --- STRUCTURE : smoothed Sobel, adaptive thresholds, tone fill --- */
     else if(M.edge){
+      /* 1) noise-killing 3×3 pre-smooth */
+      const S=new Float32Array(N);
       for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
         const i=y*cols+x;
-        const tl=L[i-cols-1], tc=L[i-cols], tr=L[i-cols+1];
-        const ml=L[i-1],                    mr=L[i+1];
-        const bl=L[i+cols-1], bc=L[i+cols], br=L[i+cols+1];
-        const gx=(tr+2*mr+br)-(tl+2*ml+bl);
-        const gy=(bl+2*bc+br)-(tl+2*tc+tr);
-        const mag=Math.sqrt(gx*gx+gy*gy);
-        if(mag<=30) continue;
-        let ch, ink;
-        if(mag>90){
-          if(Math.abs(gy)>Math.abs(gx)*1.6) ch='-';        /* gradient vertical → horizontal edge */
-          else if(Math.abs(gx)>Math.abs(gy)*1.6) ch='|';   /* gradient horizontal → vertical edge */
-          else ch=(gx*gy>0)?'/':'\\';                      /* diagonals */
-          ink=M.fg;
-        } else { ch='.'; ink='rgba(36,26,16,.35)'; }       /* faint structural dust */
-        ctx.fillStyle=ink;
+        S[i]=(L[i-cols-1]+L[i-cols]+L[i-cols+1]+L[i-1]+L[i]+L[i+1]+L[i+cols-1]+L[i+cols]+L[i+cols+1])/9;
+      }
+      /* 2) Sobel magnitudes + adaptive thresholds */
+      const MAG=new Float32Array(N); let mMax=0;
+      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
+        const i=y*cols+x;
+        const gx=(S[i-cols+1]+2*S[i+1]+S[i+cols+1])-(S[i-cols-1]+2*S[i-1]+S[i+cols-1]);
+        const gy=(S[i+cols-1]+2*S[i+cols]+S[i+cols+1])-(S[i-cols-1]+2*S[i-cols]+S[i-cols+1]);
+        const m=Math.sqrt(gx*gx+gy*gy);
+        MAG[i]=m; if(m>mMax) mMax=m;
+      }
+      const strong=mMax*.32, weak=mMax*.10;
+      /* 3) faint tonal fill first (depth under the linework) */
+      ctx.fillStyle='rgba(36,26,16,.14)';
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        const i=y*cols+x;
+        if(MAG[i]<=weak && L[i]<140) ctx.fillText('.', x*cw, y*fontSize);
+      }
+      /* 4) directional strokes on strong edges */
+      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
+        const i=y*cols+x;
+        const m=MAG[i];
+        if(m<=weak) continue;
+        const gx=(S[i-cols+1]+2*S[i+1]+S[i+cols+1])-(S[i-cols-1]+2*S[i-1]+S[i+cols-1]);
+        const gy=(S[i+cols-1]+2*S[i+cols]+S[i+cols+1])-(S[i-cols-1]+2*S[i-cols]+S[i-cols+1]);
+        let ch;
+        if(m>=strong){
+          if(Math.abs(gy)>Math.abs(gx)*1.6) ch='-';
+          else if(Math.abs(gx)>Math.abs(gy)*1.6) ch='|';
+          else ch=(gx*gy>0)?'/':'\\';
+          ctx.fillStyle=M.fg;
+        } else { ch='.'; ctx.fillStyle='rgba(36,26,16,.35)'; }
         ctx.fillText(ch, x*cw, y*fontSize);
       }
     }
     /* --- SILK HD : half-block characters, 2 pixels per cell --- */
     else if(M.half){
-      const sc2=document.createElement('canvas'); sc2.width=cols; sc2.height=rows*2;
-      const s2=sc2.getContext('2d',{willReadFrequently:true});
-      s2.drawImage(src,0,0,cols,rows*2);
-      const d2=s2.getImageData(0,0,cols,rows*2).data;
-      const px=(x,y)=>{ const p=(y*cols+x)*4; return [d2[p],d2[p+1],d2[p+2]]; };
+      const sc2 = sampleSmooth(src, cols, rows*2);
+      const d2 = sc2.getContext('2d',{willReadFrequently:true}).getImageData(0,0,cols,rows*2).data;
+      const st=v=>Math.max(0,Math.min(255,(v-loL)*255/spanL));
+      const px=(x,y)=>{ const p=(y*cols+x)*4; return [st(d2[p]),st(d2[p+1]),st(d2[p+2])]; };
       for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
         const [r1,g1,b1]=px(x,y*2), [r2,g2,b2]=px(x,y*2+1);
         if((.299*r1+.587*g1+.114*b1)<10 && (.299*r2+.587*g2+.114*b2)<10) continue;
-        ctx.fillStyle='rgb('+r2+','+g2+','+b2+')';
+        ctx.fillStyle='rgb('+(r2|0)+','+(g2|0)+','+(b2|0)+')';
         ctx.fillText('\u2584', x*cw, y*fontSize);
-        ctx.fillStyle='rgb('+r1+','+g1+','+b1+')';
+        ctx.fillStyle='rgb('+(r1|0)+','+(g1|0)+','+(b1|0)+')';
         ctx.fillText('\u2580', x*cw, y*fontSize);
       }
     }
     /* --- MANUSCRIPT : typewriter stream matched to luminance --- */
     else if(M.text){
       if(!proseMap) buildProse();
-      const B=5;
+      const B=7;
       ctx.fillStyle=M.fg;
       for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
         const i=y*cols+x;
@@ -233,15 +278,20 @@
       const len = ramp.length;
       if(M.dither){
         const step=256/len;
-        for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
-          const i=y*cols+x, old=L[i];
-          const q=Math.max(0,Math.min(255,Math.round(old/step)*step));
-          const err=old-q; L[i]=q;
-          if(x+1<cols) L[i+1]+=err*7/16;
-          if(y+1<rows){
-            if(x>0) L[i+cols-1]+=err*3/16;
-            L[i+cols]+=err*5/16;
-            if(x+1<cols) L[i+cols+1]+=err/16;
+        for(let y=0;y<rows;y++){
+          const ltr=(y%2===0);
+          for(let k=0;k<cols;k++){
+            const x=ltr?k:cols-1-k;
+            const i=y*cols+x, old=L[i];
+            const q=Math.max(0,Math.min(255,Math.round(old/step)*step));
+            const err=old-q; L[i]=q;
+            const d=ltr?1:-1;
+            if(x+d>=0&&x+d<cols) L[i+d]+=err*7/16;
+            if(y+1<rows){
+              if(x-d>=0&&x-d<cols) L[i+cols-d]+=err*3/16;
+              L[i+cols]+=err*5/16;
+              if(x+d>=0&&x+d<cols) L[i+cols+d]+=err/16;
+            }
           }
         }
       }
@@ -251,7 +301,10 @@
         if(M.flip) lum = 255-lum;
         const ch = ramp[Math.min(len-1, Math.floor(lum/256*len))];
         if(!ch || ch===' ') continue;
-        ctx.fillStyle = M.color ? 'rgb('+R[i]+','+G[i]+','+B[i]+')' : M.fg;
+        if(M.color){
+          const mx=Math.max(R[i],G[i],B[i]), f=1.3;
+          ctx.fillStyle='rgb('+Math.min(255,mx+(R[i]-mx)*f)+','+Math.min(255,mx+(G[i]-mx)*f)+','+Math.min(255,mx+(B[i]-mx)*f)+')';
+        } else ctx.fillStyle=M.fg;
         ctx.fillText(ch, x*cw, y*fontSize);
       }
     }
@@ -295,8 +348,11 @@
       ctx.fillStyle='rgba(120,255,140,'+(0.10+lum*.85).toFixed(3)+')';
       ctx.fillText(d.c, x*cwG, yi*fsG);
       if(lum>.55){
+        ctx.save();
+        ctx.shadowColor='rgba(140,255,160,.9)'; ctx.shadowBlur=8;
         ctx.fillStyle='rgba(225,255,225,'+(lum*.9).toFixed(3)+')';
         ctx.fillText(KATA[Math.random()*KATA.length|0], x*cwG, yi*fsG);
+        ctx.restore();
       }
     }
   };
@@ -321,13 +377,19 @@
     ctx.fillStyle='#050201'; ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
     const RAMP=' .:-=+*%#@';
-    const PAL=['','#5a1204','#8a2406','#c33d06','#e8720c','#f0a63c','#ffd27f','#fff3d6','#ffffff','#ffffff'];
+    if(!STEP._pal){
+      STEP._pal=['#000000','#5a1204','#8a2406','#c33d06','#e8720c','#f0a63c','#ffd27f','#fff3d6','#ffffff','#ffffff']
+        .map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+    }
+    const PALRGB=STEP._pal;
     for(let y=0;y<R;y++) for(let x=0;x<cols;x++){
       const h=heat[y*cols+x];
-      const idx=Math.min(9, Math.floor(h/256*10));
-      if(idx<1) continue;
-      ctx.fillStyle=PAL[idx];
-      ctx.fillText(RAMP[idx], x*cwG, y*fsG);
+      const t9=Math.min(9.999, h/256*10);
+      const i0=t9|0, fr=t9-i0;
+      if(i0<1) continue;
+      const a=PALRGB[i0], b=PALRGB[i0+1];
+      ctx.fillStyle='rgb('+((a[0]+(b[0]-a[0])*fr)|0)+','+((a[1]+(b[1]-a[1])*fr)|0)+','+((a[2]+(b[2]-a[2])*fr)|0)+')';
+      ctx.fillText(RAMP[i0], x*cwG, y*fsG);
     }
   };
 
@@ -358,14 +420,18 @@
   function close(){ stopAnim(); if(window.GpuAscii) GpuAscii.hide(); const p=document.getElementById('asciiPanel'); if(p) p.style.display='none'; }
   function doExport(){
     if(mode==='gpu' && window.GpuAscii) return GpuAscii.export();
-    if(!canvas.width){ render(); }
-    canvas.toBlob(b=>{
-      const a=document.createElement('a');
-      a.download='halation-ascii-'+mode+'.png';
-      a.href=URL.createObjectURL(b);
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-      if(window.toast) toast('Exported ✦ halation-ascii-'+mode+'.png');
+    getSource(src=>{
+      exportScale=2;
+      try{ paint(src); }catch(e){ console.warn(e); }
+      exportScale=1;
+      canvas.toBlob(b=>{
+        const a=document.createElement('a');
+        a.download='halation-ascii-'+mode+'.png';
+        a.href=URL.createObjectURL(b);
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+        if(window.toast) toast('Exported ✦ halation-ascii-'+mode+'.png');
+      });
     });
     return true;
   }
@@ -377,6 +443,11 @@
     document.querySelectorAll('.achip').forEach(c=>c.classList.remove('active'));
     a.classList.add('active');
     mode = a.dataset.m;
+    if(MODES[mode] && MODES[mode].cols){
+      cols = MODES[mode].cols;
+      const c2=document.getElementById('colsSlider'); if(c2) c2.value=cols;
+      const v2=document.getElementById('colsVal'); if(v2) v2.textContent=cols;
+    }
     const gr = document.getElementById('glyphRow');
     if(gr) gr.style.display = mode==='custom' ? '' : 'none';
     const tr = document.getElementById('textRow');
@@ -398,6 +469,9 @@
     .observe(document.getElementById('stageMedia'), {childList:true});
 
   buildCustomRamp();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ if(isActive() && !aside) render(); });
+  }
   const pi=document.getElementById('proseInput');
   if(pi){ let d; pi.addEventListener('input', ()=>{ clearTimeout(d); d=setTimeout(()=>{ proseText=pi.value||'@'; buildProse(); if(mode==='manuscript') render(); },300); }); }
   window.HalationASCII = { open, close, sync, setAside, render, export: doExport };

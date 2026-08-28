@@ -9,7 +9,7 @@
   cv.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none';
   stage.appendChild(cv);
   const RAMP=' .:-=+*#%@';
-  let gl,prog,uImg,uAtlas,uCanvas,uCells,uGamma,imgTex,atlasTex,ready=false,visible=false;
+  let gl,prog,uImg,uAtlas,uCanvas,uCells,uGamma,imgTex,atlasTex,ready=false,visible=false,STEP_WARNED=false;
 
   function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);return s;}
   function texParams(){
@@ -31,10 +31,11 @@
       ' vec2 cs=uCanvas/uCells;vec2 cell=floor(px/cs);'+
       ' vec3 c=texture2D(uImg,(cell+.5)/uCells).rgb;'+
       ' float l=pow(dot(c,vec3(.299,.587,.114)),uGamma);'+
-      ' float idx=floor(min(l*8.,7.99));'+
+      ' float idx=floor(min(l*10.,9.99));'+
       ' vec2 lc=fract(px/cs);'+
-      ' float a=texture2D(uAtlas,vec2((idx+lc.x)/8.,1.-lc.y)).a;'+
-      ' vec3 col=mix(vec3(.024,.016,.008),c*vec3(1.5,1.15,.7)+vec3(.08,.05,.02),a);'+
+      ' float a=texture2D(uAtlas,vec2((idx+lc.x)/10.,1.-lc.y)).a;'+
+      ' float scan=0.88+0.12*step(1.,mod(gl_FragCoord.y,3.));'+
+      ' vec3 col=mix(vec3(.024,.016,.008),(c*vec3(1.5,1.15,.7)+vec3(.08,.05,.02))*scan,a);'+
       ' gl_FragColor=vec4(col,1.);}');
     prog=gl.createProgram();
     gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
@@ -44,9 +45,9 @@
     uImg=gl.getUniformLocation(prog,'uImg');uAtlas=gl.getUniformLocation(prog,'uAtlas');
     uCanvas=gl.getUniformLocation(prog,'uCanvas');uCells=gl.getUniformLocation(prog,'uCells');uGamma=gl.getUniformLocation(prog,'uGamma');
     /* glyph atlas: 8 characters in one row */
-    const ac=document.createElement('canvas');ac.width=256;ac.height=40;
+    const ac=document.createElement('canvas');ac.width=320;ac.height=40;
     const am=ac.getContext('2d');am.fillStyle='#fff';am.font='32px "Space Mono",monospace';am.textBaseline='top';
-    for(let i=0;i<8;i++) am.fillText(RAMP[i], i*32+4, 2);
+    for(let i=0;i<10;i++) am.fillText(RAMP[i], i*32+4, 2);
     atlasTex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,atlasTex);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,ac);texParams();
     imgTex=gl.createTexture();
@@ -64,11 +65,15 @@
   }
   function draw(){
     raster(src=>{
-      if(!ready && !init()) return;
+      if(!ready && !init()){
+        if(!STEP_WARNED && window.toast){ STEP_WARNED=true; toast('WebGL unavailable on this device ✦'); }
+        return;
+      }
       const iw=src.naturalWidth||960, ih=src.naturalHeight||720;
       const cols=+(document.getElementById('colsSlider')?.value||110);
       const rows=Math.max(8,Math.round(cols*(ih/iw)*0.6));
-      cv.width=cols*10; cv.height=rows*16;
+      const dpr=Math.min(2,window.devicePixelRatio||1);
+      cv.width=Math.round(cols*10*dpr); cv.height=Math.round(rows*16*dpr);
       const ic=document.createElement('canvas');
       ic.width=Math.min(iw,2048); ic.height=Math.round(ic.width*ih/iw);
       ic.getContext('2d').drawImage(src,0,0,ic.width,ic.height);
