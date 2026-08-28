@@ -98,7 +98,7 @@ if(!reduced){
     tabs.forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     const v = t.dataset.tab;
-    $$('.g-card').forEach(c=> c.classList.toggle('hide', !(v==='all' || c.dataset.cat===v)));
+    $$('.g-card').forEach(c=> c.classList.toggle('hide', !(v==='all' || c.dataset.cat.split(' ').includes(v))));
   }));
 })();
 

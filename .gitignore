@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Future tooling (Next.js / FastAPI)
+node_modules/
+dist/
+.next/
+.env
+*.log
