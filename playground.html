@@ -84,6 +84,7 @@
             <button class="chip" data-f="grain">Grain Veil</button>
             <button class="chip" data-f="vig">Deep Vignette</button>
             <button class="chip" data-f="ascii">ASCII Press ▤</button>
+            <button class="chip" data-f="retrolab">RetroLab 64 ✦</button>
           </div>
         </div>
         <div class="chip-group">
@@ -94,6 +95,11 @@
             <button class="chip" data-f="burn">Film Burn<span class="lock">✦</span></button>
             <button class="chip" data-f="cyano">Cyanotype<span class="lock">✦</span></button>
           </div>
+        </div>
+
+        <div class="chip-group" id="retrolabPanel" style="display:none">
+          <div class="chip-label"><b>✦</b> retrolab engine — 64 presets in 9 families (◉ = date stamp)</div>
+          <div id="retrolabStrip"></div>
         </div>
 
         <div class="chip-group" id="asciiPanel" style="display:none">
@@ -183,5 +189,6 @@
 <script src="js/app.js"></script>
 <script src="js/ascii.js"></script>
 <script src="js/webgl-ascii.js"></script>
+<script src="js/retrolab.js"></script>
 </body>
 </html>

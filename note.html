@@ -51,21 +51,23 @@
 </nav>
 <div class="article-head">
   <a href="notes.html" class="back-link reveal">← all field notes</a>
-  <div class="eyebrow reveal" style="--rd:.06s;margin-top:26px">stories ✦ issue 14</div>
-  <h1 class="reveal" style="--rd:.12s">Halation: the flaw that<br>taught us to see.</h1>
-  <div class="note-meta reveal" style="--rd:.18s"><b>MARCH 2025</b> · 8 MIN READ · THE DARKROOM</div>
+  <div class="eyebrow reveal" style="--rd:.06s;margin-top:26px" id="noteEyebrow">stories ✦ issue 14</div>
+  <h1 class="reveal" style="--rd:.12s" id="noteTitle">Halation: the flaw that<br>taught us to see.</h1>
+  <div class="note-meta reveal" style="--rd:.18s" id="noteMeta"><b>ISSUE 14</b> · 8 MIN READ · THE DARKROOM</div>
 </div>
 <div class="article-hero reveal">
-  <div class="frame">
-    <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)"><use href="#scene"/></svg>
+  <div class="frame" id="noteHeroFrame">
+    <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" id="noteHeroSvg" style="filter:saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)"><use href="#scene"/></svg>
   </div>
 </div>
-<article class="article-body">
+<article class="article-body" id="noteBody">
   <p class="reveal">In the summer of 2021, a secondhand flatbed scanner chewed through a box of family photographs. Most came out streaked, banded, ruined. One came out <b>better than the original</b> — a sunset wrapped in a soft red glow, the kind of warmth no living printer seems able to make anymore.</p>
   <p class="reveal">That glow has a name. <b>Halation</b> — from the Greek for "the sun's edge." It happens when light pierces all the way through a film's emulsion, strikes the backing, and bounces back, blooming around the brightest points of the image. Film engineers spent decades trying to eliminate it. Photographers spent decades learning to love it.</p>
   <div class="pull-quote reveal">A photograph without flaws is a sentence without a voice.</div>
   <p class="reveal">We couldn't stop asking the question that scanner forced on us: <b>why did the error feel more honest than the photograph?</b> The answer, as far as we can tell, is that perfection is information, but flaws are <b>memory</b>. The glow says: light traveled here. It bounced. It fought its way back to the surface. The image carries the story of its own making.</p>
-  <div class="ascii-figure reveal" aria-hidden="true">      \   |   /   —   ( ◉ )   —      light pierces the film      /   |   \  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔      ↘   ↓   ↙       strikes the backing    ✦  halo  ✦        and blooms back</div>
+  <div class="ascii-figure reveal" aria-hidden="true">      \   |   /   —   ( ◉ )   —      light pierces the film
+      /   |   \  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔      ↘   ↓   ↙       strikes the backing
+    ✦  halo  ✦        and blooms back</div>
   <p class="reveal">So we stopped trying to fix the glow and started bottling it. Three years of tuning — hundreds of test frames per recipe, named after the eras they remember. That's why every filter here is called a chemistry, and why the whole project carries the name of a beautiful mistake.</p>
   <p class="reveal">Bring us your almost-perfect frames. <b>The darkroom light is on.</b></p>
 </article>
@@ -78,8 +80,8 @@
     </div>
   </div>
 </div>
-<div class="next-grid">
-  <a href="notes.html" class="card tilt note-card reveal">
+<div class="next-grid" id="nextGrid">
+  <a href="note.html?id=sepia" class="card tilt note-card reveal">
     <div class="card-media">
       <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" class="fx-sepia"><use href="#scene"/></svg><div class="scan"></div></div>
     <div class="card-body">
@@ -87,7 +89,7 @@
       <div class="note-meta"><b>NEXT</b> · CHEMISTRY · 5 MIN</div>
     </div>
   </a>
-  <a href="notes.html" class="card tilt note-card reveal" style="--rd:.1s">
+  <a href="note.html?id=blur" class="card tilt note-card reveal" style="--rd:.1s">
     <div class="card-media">
       <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:blur(5px)"><use href="#scene"/></svg><div class="scan"></div></div>
     <div class="card-body">
@@ -99,7 +101,7 @@
 <section class="final-cta" style="padding-top:90px">
   <div class="reveal">
     <h2 class="section-title">Make something<br><em>worth writing about.</em></h2>
-    <a href="playground.html" class="btn btn-primary">Open the darkroom ↗</a>
+    <a href="playground.html" class="btn btn-primary" id="ctaLink">Open the darkroom ↗</a>
   </div>
 </section>
 <footer>
@@ -111,5 +113,225 @@
 </footer>
 <div id="toast" role="status"></div>
 <script src="js/app.js"></script>
+<script>
+/* ================================================================
+   FIELD NOTES — Dynamic Article Router
+   ================================================================ */
+(function(){
+  const ARTICLES = {
+    halation: {
+      category: 'stories',
+      issue: 'issue 14',
+      date: '18 MARCH 2025',
+      readTime: '8 MIN READ',
+      title: 'Halation: the flaw that<br>taught us to see.',
+      filter: 'saturate(1.55) contrast(1.12) brightness(1.07) hue-rotate(-8deg)',
+      paragraphs: [
+        'In the summer of 2021, a secondhand flatbed scanner chewed through a box of family photographs. Most came out streaked, banded, ruined. One came out <b>better than the original</b> — a sunset wrapped in a soft red glow, the kind of warmth no living printer seems able to make anymore.',
+        'That glow has a name. <b>Halation</b> — from the Greek for "the sun\'s edge." It happens when light pierces all the way through a film\'s emulsion, strikes the backing, and bounces back, blooming around the brightest points of the image. Film engineers spent decades trying to eliminate it. Photographers spent decades learning to love it.',
+        '<div class="pull-quote reveal">A photograph without flaws is a sentence without a voice.</div>',
+        'We couldn\'t stop asking the question that scanner forced on us: <b>why did the error feel more honest than the photograph?</b> The answer, as far as we can tell, is that perfection is information, but flaws are <b>memory</b>. The glow says: light traveled here. It bounced. It fought its way back to the surface. The image carries the story of its own making.',
+        '<div class="ascii-figure reveal" aria-hidden="true">      \\   |   /   —   ( ◉ )   —      light pierces the film\n      /   |   \\  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔      ↘   ↓   ↙       strikes the backing\n    ✦  halo  ✦        and blooms back</div>',
+        'So we stopped trying to fix the glow and started bottling it. Three years of tuning — hundreds of test frames per recipe, named after the eras they remember. That\'s why every filter here is called a chemistry, and why the whole project carries the name of a beautiful mistake.',
+        'Bring us your almost-perfect frames. <b>The darkroom light is on.</b>'
+      ],
+      next: ['sepia', 'ascii']
+    },
+    sepia: {
+      category: 'chemistry',
+      issue: 'issue 13',
+      date: '12 MARCH 2025',
+      readTime: '5 MIN READ',
+      title: 'Mixing Sepia \'72: a recipe<br>in four numbers.',
+      filter: 'sepia(.9) contrast(1.08) brightness(.93)',
+      paragraphs: [
+        'Every bottle on our shelf is an exact arithmetic. <b>Sepia</b> is not a nostalgic brown wash poured over a digital canvas; in the wet darkroom, it was a profound chemical transformation of silver into silver sulfide.',
+        'The print was first bleached in potassium ferricyanide and potassium bromide, dissolving the metallic black silver into invisible silver halide crystals. Then came the toning bath: sodium sulfide solution. The sulfur ions bound irreversibly to the silver, re-forming an image that was chemically immune to atmospheric decay.',
+        '<div class="pull-quote reveal">Sepia didn’t invent time; it simply refused to rot.</div>',
+        'The \'72 formula we tuned into HALATION mimics the warm golden-umber shift of vintage bromide papers developed under a low safelight. We balance the shadows with a slight density compression so the blacks retain rich espresso depth rather than turning muddy.',
+        '<div class="ascii-figure reveal" aria-hidden="true">  [ Black Silver ]  +  [ Sulfur Bath ]  ⟶  [ Silver Sulfide ]\n  Ag⁰ (metallic)       S²⁻ + K₃Fe(CN)₆      Ag₂S (golden amber)</div>',
+        'When you apply Sepia \'72 to your photographs, you aren’t just tinting pixels. You are simulating an archival chemical preservation process that kept prints alive across half a century.'
+      ],
+      next: ['cyanotype', 'duotone']
+    },
+    ascii: {
+      category: 'technique',
+      issue: 'issue 12',
+      date: '02 MARCH 2025',
+      readTime: '7 MIN READ',
+      title: 'ASCII from photographs,<br>line by line.',
+      filter: 'contrast(1.4) brightness(0.95)',
+      paragraphs: [
+        'How does a photograph become text without losing its soul? The standard approach in early computing was crude: measure pixel luminance from 0 to 255, and substitute a character from a ramp like <code> .:-=+*#%@</code>.',
+        'The problem with raw luminance substitution is that it creates <b>formless blobs</b>. The human eye doesn’t recognize people and scenes solely by average brightness — our visual cortex is wired to detect <b>contours, edges, and directional flow</b>.',
+        '<div class="pull-quote reveal">Characters must become brushstrokes, not just pixels with serifs.</div>',
+        'In HALATION’s ASCII engine, we introduced Difference of Gaussians (DoG) band-pass filtering and sub-pixel tangent angle detection. When an edge runs horizontally, we cast <code>-</code>; when vertical, <code>|</code>; along diagonals, <code>/</code> and <code>\\</code>.',
+        '<div class="ascii-figure reveal" aria-hidden="true">   Original Contour         DoG Gradient         ASCII Inscription\n      ╭──────╮               [ ∇I(x,y) ]              /------\\\n      │ (◉)  │           ⟶   atan2(Gy,Gx)   ⟶        |  (o)  |\n      ╰──────╯               Perpendicular            \\------/</div>',
+        'Underneath, the typographic density of the user\'s prose sculpts the 3D volume. The result is a calligram where every character is both legible literature and structural drawing.'
+      ],
+      next: ['blur', 'grain']
+    },
+    blur: {
+      category: 'technique',
+      issue: 'issue 11',
+      date: '21 FEBRUARY 2025',
+      readTime: '4 MIN READ',
+      title: 'Why we blur: softness<br>as storytelling.',
+      filter: 'blur(5px)',
+      paragraphs: [
+        'Modern sensors compete for sharpness: 50 megapixels, edge-to-edge optical resolution, micro-contrast so aggressive it counts every pore. But photographic memory rarely looks like an endoscopy.',
+        'Sharpness records cold data; <b>blur remembers emotion</b>. When you look back at a memory from twenty years ago, your mind does not recall the crisp geometry of the brick wall behind the subject — it remembers the soft halo of the afternoon sun and the warmth of a face.',
+        '<div class="pull-quote reveal">Sharpness records facts. Softness remembers truth.</div>',
+        'In optical physics, spherical aberration in vintage glass gently disperses point light into soft diffusion discs. By combining localized Gaussian scatter with luminance-weighted contrast retention, we simulate the dreamlike rendering of vintage Cooke and Petzval lenses.',
+        '<div class="ascii-figure reveal" aria-hidden="true">   [ Hard Digital Edge ]               [ Optical Diffusion Disc ]\n        │██████│                              ░▒▓██████▓▒░\n   (clinical record)                       (emulsified memory)</div>',
+        'Blur is not the absence of focus; it is the intentional release of distraction so the subject can breathe.'
+      ],
+      next: ['grain', 'shoebox']
+    },
+    cyanotype: {
+      category: 'chemistry',
+      issue: 'issue 10',
+      date: '14 FEBRUARY 2025',
+      readTime: '6 MIN READ',
+      title: 'Cyanotype, 1842: the blue<br>before fame.',
+      filter: 'grayscale(1) sepia(1) hue-rotate(185deg) saturate(3.2) contrast(1.15) brightness(.88)',
+      paragraphs: [
+        'In 1842, the astronomer Sir John Herschel was not looking to start an artistic movement. He was looking for an inexpensive, permanent way to copy his mathematical calculations and astronomical notes.',
+        'By mixing equal parts ferric ammonium citrate and potassium ferricyanide, he coated plain cotton paper with a light-sensitive iron salt solution. Placed under sunlight and washed in water, the exposed areas formed insoluble <b>Prussian blue (ferric ferrocyanide)</b>.',
+        '<div class="pull-quote reveal">Before photography belonged to silver and gold, it was drawn in iron and sunlight.</div>',
+        'Botanist Anna Atkins used cyanotypes to publish <i>Photographs of British Algae</i> in 1843 — the first book illustrated with photographs in human history. While early silver daguerreotypes tarnished, Atkins’ Prussian blue photograms remain as vibrant today as the morning they dried.',
+        '<div class="ascii-figure reveal" aria-hidden="true">  Fe³⁺ (Iron Salts)  +  UV Sunlight  ⟶  Fe₄[Fe(CN)₆]₃\n     (pale olive)                         (Prussian Blue)</div>',
+        'Our Cyanotype filter translates modern images into that historic spectrum of deep cobalt shadows and sunlit cream highlights.'
+      ],
+      next: ['sepia', 'duotone']
+    },
+    shoebox: {
+      category: 'stories',
+      issue: 'issue 09',
+      date: '03 FEBRUARY 2025',
+      readTime: '9 MIN READ',
+      title: 'A reader\'s shoebox:<br>restoring 40 sunsets.',
+      filter: 'contrast(.8) brightness(1.15) saturate(.6)',
+      paragraphs: [
+        'Last winter, a letter arrived at the atelier accompanied by a parcel containing 40 cardboard-mounted 35mm slides from the summer of 1981. The dye couplers in the slide film had shifted toward magenta over four decades in an attic.',
+        'The sender was unsure if the images were worth scanning. "They look faded," the note read. "Like the light got tired."',
+        '<div class="pull-quote reveal">Light does not get tired; it only waits for someone to balance the chemistry.</div>',
+        'We spent three weeks running the slides through gentle non-linear gamma curves, pulling cyan back into the midtones and stabilizing the silver grain veil. The sunsets did not come back as modern clinical HDR photos — they came back as 1981.',
+        '<div class="ascii-figure reveal" aria-hidden="true">  1981 Kodachrome Slide  ⟶  Attic Decay (40 yrs)  ⟶  Digital Darkroom\n     [ Vivid Amber ]            [ Magenta Shift ]         [ Rebalanced Soul ]</div>',
+        'Every shoebox in the world holds frames waiting for their second life. That is why the darkroom exists.'
+      ],
+      next: ['halation', 'ethics']
+    },
+    duotone: {
+      category: 'chemistry',
+      issue: 'issue 08',
+      date: '27 JANUARY 2025',
+      readTime: '5 MIN READ',
+      title: 'Duotone posters: two inks,<br>infinite mood.',
+      filter: 'grayscale(1) contrast(1.1)',
+      paragraphs: [
+        'In the golden era of offset lithography and screenprinted concert posters, printing full four-color CMYK was an expensive luxury. Graphic designers and printmakers turned restriction into art by using <b>two spot inks</b>.',
+        'A true duotone is not a grayscale image tinted with a single color. It uses two separate halftone plates: one black ink plate calibrated for deep shadows, and a secondary colored ink plate (burnt orange, midnight navy, or emerald) calibrated for glowing midtones.',
+        '<div class="pull-quote reveal">Constraint is the sharpest lens an artist can look through.</div>',
+        'By overlapping the two ink curves with specific dot-gain compensations, printmakers created posters that felt heavier, moodier, and more tactile than full-color prints.',
+        '<div class="ascii-figure reveal" aria-hidden="true">  Plate 1 (Carbon Black) : [░░░░░░▒▒▓▓██] (Shadow Foundation)\n  Plate 2 (Burnt Amber)  : [░░▒▒▓▓██▒▒░░] (Midtone Soul)</div>',
+        'Our Duotone recipe honors that discipline of two-plate printing.'
+      ],
+      next: ['sepia', 'cyanotype']
+    },
+    grain: {
+      category: 'technique',
+      issue: 'issue 07',
+      date: '19 JANUARY 2025',
+      readTime: '4 MIN READ',
+      title: 'Grain is not noise:<br>texture as film soul.',
+      filter: 'contrast(.9) sepia(.15) brightness(1.03)',
+      paragraphs: [
+        'In digital photography, "noise" is an unwanted electrical artifact — randomized pixel errors produced by a hot sensor struggling for light. In film photography, "grain" is the physical substance of the photograph itself.',
+        'Film has no pixels. It is coated with millions of microscopic silver halide crystals suspended in gelatin. When light strikes a crystal, it turns into metallic silver. The grain is not something sitting on top of the photo — <b>the grain IS the photo</b>.',
+        '<div class="pull-quote reveal">Digital noise is an error of measurement. Film grain is the weight of silver.</div>',
+        'When you look at a coarse Tri-X 400 grain structure, you are looking at physical particles of silver that reacted to light on a specific afternoon in history. That organic, non-repeating texture gives photographs a tactile depth that smooth digital files inherently lack.',
+        '<div class="ascii-figure reveal" aria-hidden="true">   Digital Noise (Bayer matrix)        Silver Halide Emulsion\n       [ · · x · x · · ]                  [ ∴ ∵ ∷ ∴ ∷ ∵ ∴ ]\n      (sensor interference)              (physical silver crystal)</div>',
+        'We engineer our grain veils using Perlin stochastic distributions rather than uniform noise generators to honor that chemical truth.'
+      ],
+      next: ['blur', 'ethics']
+    },
+    ethics: {
+      category: 'stories',
+      issue: 'issue 06',
+      date: '08 JANUARY 2025',
+      readTime: '6 MIN READ',
+      title: 'The ethics of a filter:<br>truth and memory.',
+      filter: 'grayscale(1) contrast(1.35) brightness(.9)',
+      paragraphs: [
+        'At what point does processing a photograph cross the line between development and deception? When does a filter stop honoring a memory and start manufacturing a lie?',
+        'This debate is as old as the medium itself. When Ansel Adams created <i>Moonrise, Hernandez, New Mexico</i> in 1941, he spent decades re-interpreting the negative — burning the sky to deep velvet black and dodging the crosses in the graveyard until they glowed.',
+        '<div class="pull-quote reveal">The negative is the score; the print is the performance.</div>',
+        'Adams understood that a camera does not see what the human eye sees. The camera records objective electromagnetic radiation; the human eye records meaning, mood, and resonance.',
+        '<div class="ascii-figure reveal" aria-hidden="true">   Raw Sensor Capture                  Developed Memory\n   [ Objective Lumens ]        ⟶        [ Emotional Resonance ]\n   (what the sensor saw)                (what the human felt)</div>',
+        'A darkroom filter should never be a mask to hide behind. It should be a lens that brings the emotional core of the frame into focus.'
+      ],
+      next: ['halation', 'shoebox']
+    }
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id') || 'halation';
+  const data = ARTICLES[id] || ARTICLES.halation;
+
+  // Set document title & metadata
+  document.title = data.title.replace(/<br>/g, ' ') + ' — HALATION';
+  const eb = document.getElementById('noteEyebrow');
+  if(eb) eb.textContent = data.category + ' ✦ ' + data.issue;
+  const nt = document.getElementById('noteTitle');
+  if(nt) nt.innerHTML = data.title;
+  const nm = document.getElementById('noteMeta');
+  if(nm) nm.innerHTML = '<b>' + data.issue.toUpperCase() + '</b> · ' + data.readTime + ' · THE DARKROOM';
+
+  // Set hero filter
+  const svg = document.getElementById('noteHeroSvg');
+  if(svg && data.filter) svg.style.filter = data.filter;
+
+  // Set body paragraphs
+  const nb = document.getElementById('noteBody');
+  if(nb && data.paragraphs){
+    nb.innerHTML = data.paragraphs.map(p => {
+      if(p.startsWith('<div')) return p;
+      return '<p class="reveal">' + p + '</p>';
+    }).join('\n');
+  }
+
+  // Populate next read recommendations
+  const ng = document.getElementById('nextGrid');
+  if(ng && data.next && data.next.length >= 2){
+    const n1 = ARTICLES[data.next[0]];
+    const n2 = ARTICLES[data.next[1]];
+    if(n1 && n2){
+      ng.innerHTML = `
+        <a href="note.html?id=${data.next[0]}" class="card tilt note-card reveal">
+          <div class="card-media">
+            <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:${n1.filter}"><use href="#scene"/></svg>
+            <div class="scan"></div>
+          </div>
+          <div class="card-body">
+            <h3>${n1.title.replace(/<br>/g, ' ')}</h3>
+            <div class="note-meta"><b>NEXT</b> · ${n1.category.toUpperCase()} · ${n1.readTime.split(' ')[0]} MIN</div>
+          </div>
+        </a>
+        <a href="note.html?id=${data.next[1]}" class="card tilt note-card reveal" style="--rd:.1s">
+          <div class="card-media">
+            <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" style="filter:${n2.filter}"><use href="#scene"/></svg>
+            <div class="scan"></div>
+          </div>
+          <div class="card-body">
+            <h3>${n2.title.replace(/<br>/g, ' ')}</h3>
+            <div class="note-meta"><b>NEXT</b> · ${n2.category.toUpperCase()} · ${n2.readTime.split(' ')[0]} MIN</div>
+          </div>
+        </a>
+      `;
+    }
+  }
+})();
+</script>
 </body>
 </html>

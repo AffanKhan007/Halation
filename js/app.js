@@ -140,6 +140,7 @@ if(!reduced){
     burn : {pro:1,name:'film burn ’86', t:.6, css:t=>`saturate(${(1+t*1.4).toFixed(2)}) contrast(${(1+t*.5).toFixed(2)}) sepia(${(t*.4).toFixed(2)}) brightness(${(1+t*.05).toFixed(2)})`},
     cyano: {pro:1,name:'cyanotype', t:.8, css:t=>`grayscale(1) sepia(1) hue-rotate(185deg) saturate(${(1+t*2.6).toFixed(2)}) contrast(${(1+t*.2).toFixed(2)}) brightness(${(1-t*.15).toFixed(2)})`},
     ascii: {name:'ascii press', t:.7, css:()=>'none'},
+    retrolab: {name:'retrolab 64', t:1, css:()=>'none'},
   };
   let current='none', curT=F.none.t, uploaded=false;
   const subj = ()=> stage.querySelector('.subject');
@@ -151,11 +152,12 @@ if(!reduced){
     $('#duoOverlay').style.opacity = f.duo ? curT : 0;
     const ovl = $('#fxOverlay');
     ovl.dataset.mode = f.ovl || '';
-    $('#proMark').classList.toggle('on', !!f.pro && current!=='ascii');
-    $('#capName').textContent = f.name;
+    $('#proMark').classList.toggle('on', !!f.pro && current!=='ascii' && current!=='retrolab');
+    $('#capName').textContent = current==='retrolab' && window.RetroLab ? 'retrolab · ' + RetroLab.getActiveId() : f.name;
     $('#capPro').innerHTML = f.pro ? '✦ pro preview' : 'free ✓';
     if(intVal) intVal.textContent = Math.round(curT*100)+'%';
     if(window.HalationASCII) HalationASCII.sync();
+    if(window.RetroLab) RetroLab.sync();
   }
   $$('.chip[data-f]').forEach(chip=>chip.addEventListener('click', ()=>{
     $$('.chip[data-f]').forEach(c=>c.classList.remove('active'));
@@ -163,10 +165,23 @@ if(!reduced){
     current = chip.dataset.f;
     curT = F[current].t;
     if(slider) slider.value = curT*100;
-    if(current==='ascii' && window.HalationASCII) window.HalationASCII.open();
+    if(current==='ascii' && window.HalationASCII){
+      window.HalationASCII.open();
+      if(window.RetroLab) window.RetroLab.close();
+    } else if(current==='retrolab' && window.RetroLab){
+      window.RetroLab.open();
+      if(window.HalationASCII) window.HalationASCII.close();
+    } else {
+      if(window.HalationASCII) window.HalationASCII.close();
+      if(window.RetroLab) window.RetroLab.close();
+    }
     apply();
   }));
-  if(slider) slider.addEventListener('input', ()=>{ curT = slider.value/100; apply(); });
+  if(slider) slider.addEventListener('input', ()=>{
+    curT = slider.value/100;
+    if(current==='retrolab' && window.RetroLab) window.RetroLab.setIntensity(curT);
+    apply();
+  });
 
   /* upload */
   const input = $('#fileInput'), dz = $('#dropzone');
@@ -202,21 +217,35 @@ if(!reduced){
   /* compare / reset / export */
   const cmp = $('#compareBtn');
   if(cmp){
-    const on  = ()=>{ const s=subj(); if(s) s.style.filter='none'; $('#duoOverlay').style.opacity=0; $('#fxOverlay').dataset.mode=''; $('#proMark').classList.remove('on'); if(window.HalationASCII) HalationASCII.setAside(true); };
+    const on  = ()=>{
+      const s=subj();
+      if(s) s.style.filter='none';
+      $('#duoOverlay').style.opacity=0;
+      $('#fxOverlay').dataset.mode='';
+      $('#proMark').classList.remove('on');
+      if(window.HalationASCII) HalationASCII.setAside(true);
+      if(window.RetroLab) RetroLab.setAside(true);
+    };
     const off = ()=> apply();
     ['pointerdown','touchstart'].forEach(ev=>cmp.addEventListener(ev, e=>{e.preventDefault(); on();}));
     ['pointerup','pointerleave','touchend'].forEach(ev=>cmp.addEventListener(ev, off));
+    window.addEventListener('keydown', e=>{ if((e.key==='c'||e.key==='C') && !e.target.matches('input,textarea')) on(); });
+    window.addEventListener('keyup',   e=>{ if((e.key==='c'||e.key==='C') && !e.target.matches('input,textarea')) off(); });
   }
   const rst = $('#resetBtn');
   if(rst) rst.addEventListener('click', ()=>{
     $$('.chip[data-f]').forEach(c=>c.classList.toggle('active', c.dataset.f==='none'));
-    current='none'; curT=1; if(slider) slider.value=100; apply();
+    current='none'; curT=1; if(slider) slider.value=100;
+    if(window.HalationASCII) HalationASCII.close();
+    if(window.RetroLab) RetroLab.close();
+    apply();
     toast('Back to the original negative ✦');
   });
   const dl = $('#dlBtn');
   if(dl) dl.addEventListener('click', ()=>{
     const f = F[current];
     if(current==='ascii' && window.HalationASCII) return HalationASCII.export();
+    if(current==='retrolab' && window.RetroLab) return RetroLab.export();
     if(f.pro) return toast('✦ Export blocked — Pro chemistry needs a Pro key');
     if(!uploaded) return toast('Upload a photo first — sample scenes can’t be exported');
     const s = subj();
