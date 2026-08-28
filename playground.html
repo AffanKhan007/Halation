@@ -81,6 +81,7 @@
             <button class="chip" data-f="fade">Morning Fade</button>
             <button class="chip" data-f="grain">Grain Veil</button>
             <button class="chip" data-f="vig">Deep Vignette</button>
+            <button class="chip" data-f="ascii">ASCII Press ▤</button>
           </div>
         </div>
         <div class="chip-group">
@@ -90,7 +91,40 @@
             <button class="chip" data-f="duo">Duotone<span class="lock">✦</span></button>
             <button class="chip" data-f="burn">Film Burn<span class="lock">✦</span></button>
             <button class="chip" data-f="cyano">Cyanotype<span class="lock">✦</span></button>
-            <button class="chip" data-f="ascii">ASCII Press<span class="lock">✦</span></button>
+          </div>
+        </div>
+
+        <div class="chip-group" id="asciiPanel" style="display:none">
+          <div class="chip-label"><b>✦</b> the ascii press — choose a plate</div>
+          <div class="chips">
+            <button class="chip achip active" data-m="terminal">Terminal</button>
+            <button class="chip achip" data-m="amber">Amber CRT</button>
+            <button class="chip achip" data-m="blocks">Blocks</button>
+            <button class="chip achip" data-m="color">Color</button>
+<button class="chip achip" data-m="silk">Silk HD</button>
+            <button class="chip achip" data-m="braille">Braille HD</button>
+            <button class="chip achip" data-m="binary">Binary</button>
+            <button class="chip achip" data-m="sketch">Structure</button>
+<button class="chip achip" data-m="manuscript">Manuscript</button>
+            <button class="chip achip" data-m="paper">Paper Press</button>
+            <button class="chip achip" data-m="halftone">Halftone</button>
+<button class="chip achip" data-m="dither">Newsprint</button>
+            <button class="chip achip" data-m="custom">Your Glyphs</button>
+<button class="chip achip" data-m="matrix">Matrix Rain</button>
+<button class="chip achip" data-m="ember">Ember</button>
+<button class="chip achip" data-m="gpu">GPU Ultra</button>
+          </div>
+          <div class="slider-row">
+            <label for="colsSlider">plate resolution <output id="colsVal">110</output></label>
+            <input type="range" id="colsSlider" min="60" max="160" value="110">
+          </div>
+          <div class="slider-row" id="textRow" style="display:none">
+            <label for="proseInput">your text — the photo will be written from it</label>
+            <textarea id="proseInput" rows="3" spellcheck="false">In the darkroom every photograph waits for its second life, and light remembers what the eye forgets.</textarea>
+          </div>
+          <div class="slider-row" id="glyphRow" style="display:none">
+            <label for="glyphInput">your glyphs — the photo will be built from them</label>
+            <input type="text" id="glyphInput" value="HALATION✦" maxlength="20" spellcheck="false">
           </div>
         </div>
 
@@ -145,5 +179,7 @@
 </footer>
 <div id="toast" role="status"></div>
 <script src="js/app.js"></script>
+<script src="js/ascii.js"></script>
+<script src="js/webgl-ascii.js"></script>
 </body>
 </html>

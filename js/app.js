@@ -139,7 +139,7 @@ if(!reduced){
     duo  : {pro:1,duo:1,name:'duotone dream', t:.8, css:t=>`grayscale(1) contrast(${(1+t*.3).toFixed(2)})`},
     burn : {pro:1,name:'film burn ’86', t:.6, css:t=>`saturate(${(1+t*1.4).toFixed(2)}) contrast(${(1+t*.5).toFixed(2)}) sepia(${(t*.4).toFixed(2)}) brightness(${(1+t*.05).toFixed(2)})`},
     cyano: {pro:1,name:'cyanotype', t:.8, css:t=>`grayscale(1) sepia(1) hue-rotate(185deg) saturate(${(1+t*2.6).toFixed(2)}) contrast(${(1+t*.2).toFixed(2)}) brightness(${(1-t*.15).toFixed(2)})`},
-    ascii: {pro:1,name:'ascii press', t:1, css:()=>'none'},
+    ascii: {name:'ascii press', t:.7, css:()=>'none'},
   };
   let current='none', curT=F.none.t, uploaded=false;
   const subj = ()=> stage.querySelector('.subject');
@@ -155,6 +155,7 @@ if(!reduced){
     $('#capName').textContent = f.name;
     $('#capPro').innerHTML = f.pro ? '✦ pro preview' : 'free ✓';
     if(intVal) intVal.textContent = Math.round(curT*100)+'%';
+    if(window.HalationASCII) HalationASCII.sync();
   }
   $$('.chip[data-f]').forEach(chip=>chip.addEventListener('click', ()=>{
     $$('.chip[data-f]').forEach(c=>c.classList.remove('active'));
@@ -162,7 +163,7 @@ if(!reduced){
     current = chip.dataset.f;
     curT = F[current].t;
     if(slider) slider.value = curT*100;
-    if(current==='ascii') toast('✦ ASCII press renders server-side in the full app — unlock with Pro');
+    if(current==='ascii' && window.HalationASCII) window.HalationASCII.open();
     apply();
   }));
   if(slider) slider.addEventListener('input', ()=>{ curT = slider.value/100; apply(); });
@@ -201,7 +202,7 @@ if(!reduced){
   /* compare / reset / export */
   const cmp = $('#compareBtn');
   if(cmp){
-    const on  = ()=>{ const s=subj(); if(s) s.style.filter='none'; $('#duoOverlay').style.opacity=0; $('#fxOverlay').dataset.mode=''; $('#proMark').classList.remove('on'); };
+    const on  = ()=>{ const s=subj(); if(s) s.style.filter='none'; $('#duoOverlay').style.opacity=0; $('#fxOverlay').dataset.mode=''; $('#proMark').classList.remove('on'); if(window.HalationASCII) HalationASCII.setAside(true); };
     const off = ()=> apply();
     ['pointerdown','touchstart'].forEach(ev=>cmp.addEventListener(ev, e=>{e.preventDefault(); on();}));
     ['pointerup','pointerleave','touchend'].forEach(ev=>cmp.addEventListener(ev, off));
@@ -215,6 +216,7 @@ if(!reduced){
   const dl = $('#dlBtn');
   if(dl) dl.addEventListener('click', ()=>{
     const f = F[current];
+    if(current==='ascii' && window.HalationASCII) return HalationASCII.export();
     if(f.pro) return toast('✦ Export blocked — Pro chemistry needs a Pro key');
     if(!uploaded) return toast('Upload a photo first — sample scenes can’t be exported');
     const s = subj();

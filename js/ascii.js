@@ -1,0 +1,404 @@
+/* ================================================================
+   HALATION — THE ASCII PRESS
+   10 artistic plates. Canvas-based so PNG export works.
+   Requires playground.html + app.js loaded first.
+   ================================================================ */
+(function(){
+  const frame = document.querySelector('.stage-frame');
+  if(!frame || !document.getElementById('stageMedia')) return;
+
+  /* canvas layer inside the stage */
+  const canvas = document.createElement('canvas');
+  canvas.id = 'asciiCanvas';
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none';
+  frame.insertBefore(canvas, document.getElementById('stageMedia').nextSibling);
+
+  const MODES = {
+    terminal:{ramp:' .:-=+*#%@', fg:'#7dd87a', bg:'#060402', crt:true},
+    amber   :{ramp:' .:-=+*#%@', fg:'#ffc86b', bg:'#0a0703', crt:true},
+    blocks  :{ramp:' ░▒▓█',      fg:'#f0a63c', bg:'#060402'},
+    color   :{ramp:' .:-=+*#%@', color:true,   bg:'#060402'},
+    braille :{braille:true,      fg:'#7dd87a', bg:'#060402', crt:true},
+    binary  :{ramp:' 1',         fg:'#9fe8a0', bg:'#060402', crt:true},
+    sketch  :{edge:true,         fg:'#241a10', bg:'#efe4cd'},
+    paper   :{ramp:' .:-=+*#%@', fg:'#241a10', bg:'#efe4cd', flip:true},
+    halftone:{ramp:' .·:oO●',    fg:'#efe4cd', bg:'#060402'},
+    dither  :{ramp:' .·:oO0@',   fg:'#efe4cd', bg:'#060402', dither:true},
+    custom  :{ramp:null,         fg:'#ffc86b', bg:'#060402'},
+    matrix  :{anim:true,                       bg:'#020602'},
+    ember   :{anim:true,                       bg:'#050201'},
+    manuscript:{text:true,       fg:'#3a2a18', bg:'#efe4cd'},
+    silk    :{half:true,                      bg:'#060402'},
+    gpu     :{external:true},
+  };
+  let mode='terminal', cols=110, glyphs='HALATION✦';
+  let aside=false, busy=false, customRamp=null;
+  let animId=null, lastGrid=null, cwG=9.6, fsG=16;
+  const STEP={};
+  const intSlider = document.getElementById('intensity');
+
+  /* --- turn the current subject (img or sample svg) into an Image --- */
+  function getSource(cb){
+    const s = document.querySelector('#stageMedia .subject');
+    if(!s) return;
+    if(s.tagName === 'IMG'){ cb(s); return; }
+    const sym = document.getElementById('scene');
+    if(!sym) return;
+    try{
+      const str = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="960" height="720">' + sym.innerHTML + '</svg>';
+      const im = new Image();
+      im.onload = ()=> cb(im);
+      im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+    }catch(e){ console.warn(e); }
+  }
+
+  /* --- measure each custom glyph's visual weight, sort light→dark --- */
+  function buildCustomRamp(){
+    const chars = [...new Set(glyphs.split(''))].filter(c=>c.trim());
+    if(!chars.length){ customRamp='@'; return; }
+    const mc = document.createElement('canvas'); mc.width=mc.height=28;
+    const m = mc.getContext('2d', {willReadFrequently:true});
+    const scored = chars.map(ch=>{
+      m.clearRect(0,0,28,28);
+      m.fillStyle='#fff'; m.font='22px "Space Mono",monospace'; m.textBaseline='middle';
+      m.fillText(ch,3,15);
+      const d=m.getImageData(0,0,28,28).data; let n=0;
+      for(let i=3;i<d.length;i+=4) n+=d[i];
+      return {ch,n};
+    }).sort((a,b)=>a.n-b.n);
+    customRamp = scored.map(s=>s.ch).join('') + '█';
+  }
+
+  /* --- MANUSCRIPT : photo written from the user's text --- */
+  let proseText='In the darkroom every photograph waits for its second life, and light remembers what the eye forgets.';
+  let proseMap=null, proseBuckets=null, proseCursor=0;
+  function buildProse(){
+    const uniq=[...new Set(proseText.replace(/\s+/g,'').split(''))];
+    if(!uniq.length){ proseMap=null; proseBuckets=null; return; }
+    const mc=document.createElement('canvas'); mc.width=mc.height=28;
+    const m=mc.getContext('2d',{willReadFrequently:true});
+    const scored=uniq.map(ch=>{
+      m.clearRect(0,0,28,28); m.fillStyle='#fff';
+      m.font='22px "Space Mono",monospace'; m.textBaseline='middle';
+      m.fillText(ch,3,15);
+      const d=m.getImageData(0,0,28,28).data; let n=0;
+      for(let i=3;i<d.length;i+=4) n+=d[i];
+      return {ch,n};
+    }).sort((a,b)=>a.n-b.n);
+    const B=5;
+    proseMap=new Map(); proseBuckets=[];
+    for(let b=0;b<B;b++) proseBuckets.push([]);
+    scored.forEach((s,i)=>{
+      const b=Math.min(B-1, Math.floor(i/scored.length*B));
+      proseMap.set(s.ch,b); proseBuckets[b].push(s.ch);
+    });
+    proseCursor=0;
+  }
+  function proseChar(level){
+    if(!proseMap) return '@';
+    for(let k=0;k<proseText.length;k++){
+      const idx=(proseCursor+k)%proseText.length;
+      const ch=proseText[idx];
+      if(/\s/.test(ch)) continue;
+      const b=proseMap.get(ch);
+      const slack=k>120?2:k>60?1:0;
+      if(b!==undefined && Math.abs(b-level)<=slack){ proseCursor=(idx+1)%proseText.length; return ch; }
+    }
+    return proseBuckets[level].length?proseBuckets[level][0]:'@';
+  }
+
+  /* --- the engine --- */
+  function render(){
+    if(busy || aside) return;
+    if(MODES[mode] && MODES[mode].external) return;
+    busy = true;
+    getSource(src=>{ try{ paint(src); }catch(e){ console.warn(e); } busy=false; });
+  }
+
+  function paint(src){
+    const M = MODES[mode];
+    const iw = src.naturalWidth || 960, ih = src.naturalHeight || 720;
+
+    const fontSize = 16;
+    const ctx = canvas.getContext('2d');
+    ctx.font = fontSize + 'px "Space Mono",monospace';
+    const cw = ctx.measureText('M').width;
+    cwG=cw; fsG=fontSize;
+    const rows = Math.max(8, Math.round(cols * (ih/iw) * (cw/fontSize)));
+
+    /* sample the image down to text resolution */
+    const sc = document.createElement('canvas'); sc.width=cols; sc.height=rows;
+    const sctx = sc.getContext('2d', {willReadFrequently:true});
+    sctx.drawImage(src, 0, 0, cols, rows);
+    const data = sctx.getImageData(0, 0, cols, rows).data;
+
+    const N = cols*rows;
+    const L = new Float32Array(N), R = new Uint8ClampedArray(N), G = new Uint8ClampedArray(N), B = new Uint8ClampedArray(N);
+    let mean = 0;
+    for(let i=0;i<N;i++){
+      const r=data[i*4], g=data[i*4+1], b=data[i*4+2];
+      R[i]=r; G[i]=g; B[i]=b;
+      L[i] = .299*r + .587*g + .114*b;
+      mean += L[i];
+    }
+    mean /= N;
+
+    /* intensity slider = ink density (gamma) */
+    const t = intSlider ? intSlider.value/100 : 1;
+    const gamma = 1.7 - t*1.2;
+    for(let i=0;i<N;i++) L[i] = 255*Math.pow(L[i]/255, gamma);
+    lastGrid = {L:L.slice(), rows, cols};
+
+    canvas.width  = Math.round(cols*cw);
+    canvas.height = Math.round(rows*fontSize);
+    ctx.font = fontSize + 'px "Space Mono",monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = M.bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if(M.anim) return;   /* animated plates draw themselves each frame */
+
+    /* --- BRAILLE HD : 1 char = 2×4 pixels --- */
+    if(M.braille){
+      const BITS = [0x01,0x08,0x02,0x10,0x04,0x20,0x40,0x80];
+      const sw=cols*2, sh=rows*4;
+      const bc=document.createElement('canvas'); bc.width=sw; bc.height=sh;
+      const bctx=bc.getContext('2d',{willReadFrequently:true});
+      bctx.drawImage(src,0,0,sw,sh);
+      const bd=bctx.getImageData(0,0,sw,sh).data;
+      ctx.fillStyle = M.fg;
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        let v=0;
+        for(let dy=0;dy<4;dy++) for(let dx=0;dx<2;dx++){
+          const p=((y*4+dy)*sw + (x*2+dx))*4;
+          const lum=.299*bd[p]+.587*bd[p+1]+.114*bd[p+2];
+          if(lum < mean) v |= BITS[dy*2+dx];
+        }
+        if(v) ctx.fillText(String.fromCharCode(0x2800+v), x*cw, y*fontSize);
+      }
+    }
+    /* --- STRUCTURE : true Sobel operator, angle-mapped strokes --- */
+    else if(M.edge){
+      for(let y=1;y<rows-1;y++) for(let x=1;x<cols-1;x++){
+        const i=y*cols+x;
+        const tl=L[i-cols-1], tc=L[i-cols], tr=L[i-cols+1];
+        const ml=L[i-1],                    mr=L[i+1];
+        const bl=L[i+cols-1], bc=L[i+cols], br=L[i+cols+1];
+        const gx=(tr+2*mr+br)-(tl+2*ml+bl);
+        const gy=(bl+2*bc+br)-(tl+2*tc+tr);
+        const mag=Math.sqrt(gx*gx+gy*gy);
+        if(mag<=30) continue;
+        let ch, ink;
+        if(mag>90){
+          if(Math.abs(gy)>Math.abs(gx)*1.6) ch='-';        /* gradient vertical → horizontal edge */
+          else if(Math.abs(gx)>Math.abs(gy)*1.6) ch='|';   /* gradient horizontal → vertical edge */
+          else ch=(gx*gy>0)?'/':'\\';                      /* diagonals */
+          ink=M.fg;
+        } else { ch='.'; ink='rgba(36,26,16,.35)'; }       /* faint structural dust */
+        ctx.fillStyle=ink;
+        ctx.fillText(ch, x*cw, y*fontSize);
+      }
+    }
+    /* --- SILK HD : half-block characters, 2 pixels per cell --- */
+    else if(M.half){
+      const sc2=document.createElement('canvas'); sc2.width=cols; sc2.height=rows*2;
+      const s2=sc2.getContext('2d',{willReadFrequently:true});
+      s2.drawImage(src,0,0,cols,rows*2);
+      const d2=s2.getImageData(0,0,cols,rows*2).data;
+      const px=(x,y)=>{ const p=(y*cols+x)*4; return [d2[p],d2[p+1],d2[p+2]]; };
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        const [r1,g1,b1]=px(x,y*2), [r2,g2,b2]=px(x,y*2+1);
+        if((.299*r1+.587*g1+.114*b1)<10 && (.299*r2+.587*g2+.114*b2)<10) continue;
+        ctx.fillStyle='rgb('+r2+','+g2+','+b2+')';
+        ctx.fillText('\u2584', x*cw, y*fontSize);
+        ctx.fillStyle='rgb('+r1+','+g1+','+b1+')';
+        ctx.fillText('\u2580', x*cw, y*fontSize);
+      }
+    }
+    /* --- MANUSCRIPT : typewriter stream matched to luminance --- */
+    else if(M.text){
+      if(!proseMap) buildProse();
+      const B=5;
+      ctx.fillStyle=M.fg;
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        const i=y*cols+x;
+        const level=Math.min(B-1, Math.floor((255-L[i])/256*B));
+        if(level===0) continue;
+        ctx.fillText(proseChar(level), x*cw, y*fontSize);
+      }
+    }
+    /* --- classic ramp plates --- */
+    else {
+      if(M.ramp===null && !customRamp) buildCustomRamp();
+      const ramp = M.ramp===null ? customRamp : M.ramp;
+      const len = ramp.length;
+      if(M.dither){
+        const step=256/len;
+        for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+          const i=y*cols+x, old=L[i];
+          const q=Math.max(0,Math.min(255,Math.round(old/step)*step));
+          const err=old-q; L[i]=q;
+          if(x+1<cols) L[i+1]+=err*7/16;
+          if(y+1<rows){
+            if(x>0) L[i+cols-1]+=err*3/16;
+            L[i+cols]+=err*5/16;
+            if(x+1<cols) L[i+cols+1]+=err/16;
+          }
+        }
+      }
+      for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+        const i=y*cols+x;
+        let lum = L[i];
+        if(M.flip) lum = 255-lum;
+        const ch = ramp[Math.min(len-1, Math.floor(lum/256*len))];
+        if(!ch || ch===' ') continue;
+        ctx.fillStyle = M.color ? 'rgb('+R[i]+','+G[i]+','+B[i]+')' : M.fg;
+        ctx.fillText(ch, x*cw, y*fontSize);
+      }
+    }
+
+    /* CRT scanlines */
+    if(M.crt){
+      ctx.fillStyle='rgba(0,0,0,.22)';
+      for(let y=0;y<canvas.height;y+=3) ctx.fillRect(0,y,canvas.width,1);
+    }
+  }
+
+  /* --- ANIMATION SYSTEM --- */
+  function startAnim(){
+    if(animId || aside || !isActive() || !MODES[mode] || !MODES[mode].anim) return;
+    const ctx=canvas.getContext('2d');
+    const tick=()=>{ animId=requestAnimationFrame(tick); if(STEP[mode]) STEP[mode](ctx); };
+    animId=requestAnimationFrame(tick);
+  }
+  function stopAnim(){ if(animId){ cancelAnimationFrame(animId); animId=null; } }
+
+  /* --- MATRIX DIGITAL RAIN : brightness-gated falling katakana --- */
+  const KATA='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789';
+  let drops=null;
+  STEP.matrix=function(ctx){
+    if(!lastGrid) return;
+    const R=lastGrid.rows;
+    if(!drops || drops.length!==cols){
+      drops=new Array(cols).fill(0).map(()=>({y:Math.random()*-R, s:.3+Math.random()*.8, c:KATA[Math.random()*KATA.length|0]}));
+    }
+    ctx.fillStyle='rgba(2,6,2,.16)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
+    for(let x=0;x<cols;x++){
+      const d=drops[x];
+      d.y+=d.s;
+      if(d.y>R+6){ d.y=Math.random()*-R; d.s=.3+Math.random()*.8; }
+      const yi=Math.floor(d.y);
+      if(yi<0||yi>=R) continue;
+      const lum=lastGrid.L[yi*cols+x]/255;
+      if(Math.random()<.07) d.c=KATA[Math.random()*KATA.length|0];
+      ctx.fillStyle='rgba(120,255,140,'+(0.10+lum*.85).toFixed(3)+')';
+      ctx.fillText(d.c, x*cwG, yi*fsG);
+      if(lum>.55){
+        ctx.fillStyle='rgba(225,255,225,'+(lum*.9).toFixed(3)+')';
+        ctx.fillText(KATA[Math.random()*KATA.length|0], x*cwG, yi*fsG);
+      }
+    }
+  };
+
+  /* --- EMBER : fire simulation seeded by the image --- */
+  let heat=null;
+  STEP.ember=function(ctx){
+    if(!lastGrid) return;
+    const R=lastGrid.rows, Nn=cols*R;
+    if(!heat || heat.length!==Nn) heat=new Float32Array(Nn);
+    /* seed heat from photograph luminance + flicker */
+    for(let i=0;i<Nn;i++){
+      const lum=lastGrid.L[i]/255;
+      heat[i]=Math.max(heat[i]*.55, lum*(140+Math.random()*115));
+    }
+    /* fire rises: pull from below with drift and random cooling */
+    for(let y=0;y<R-1;y++) for(let x=0;x<cols;x++){
+      const s=Math.max(0,Math.min(cols-1, x+(Math.random()<.4?(Math.random()<.5?-1:1):0)));
+      const up=heat[(y+1)*cols+s]-Math.random()*18;
+      if(up>heat[y*cols+x]) heat[y*cols+x]=up;
+    }
+    ctx.fillStyle='#050201'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font=fsG+'px "Space Mono",monospace'; ctx.textBaseline='top';
+    const RAMP=' .:-=+*%#@';
+    const PAL=['','#5a1204','#8a2406','#c33d06','#e8720c','#f0a63c','#ffd27f','#fff3d6','#ffffff','#ffffff'];
+    for(let y=0;y<R;y++) for(let x=0;x<cols;x++){
+      const h=heat[y*cols+x];
+      const idx=Math.min(9, Math.floor(h/256*10));
+      if(idx<1) continue;
+      ctx.fillStyle=PAL[idx];
+      ctx.fillText(RAMP[idx], x*cwG, y*fsG);
+    }
+  };
+
+  /* --- state helpers --- */
+  function isActive(){
+    const c = document.querySelector('.chip[data-f="ascii"]');
+    return !!(c && c.classList.contains('active'));
+  }
+  function sync(){
+    const on = isActive();
+    canvas.style.display = on && !aside && !(MODES[mode]&&MODES[mode].external) ? 'block' : 'none';
+    if(window.GpuAscii) GpuAscii.update(mode);
+    const sm = document.getElementById('stageMedia');
+    if(sm) sm.style.display = on && !aside ? 'none' : '';
+    if(on && !aside) render();
+    if(on && !aside) startAnim(); else stopAnim();
+  }
+  function setAside(v){
+    aside = v;
+    if(v) stopAnim(); else startAnim();
+    if(v){
+      if(window.GpuAscii) GpuAscii.hide();
+      canvas.style.display='none';
+      const sm=document.getElementById('stageMedia'); if(sm) sm.style.display='';
+    }
+  }
+  function open(){ const p=document.getElementById('asciiPanel'); if(p) p.style.display=''; render(); startAnim(); }
+  function close(){ stopAnim(); if(window.GpuAscii) GpuAscii.hide(); const p=document.getElementById('asciiPanel'); if(p) p.style.display='none'; }
+  function doExport(){
+    if(mode==='gpu' && window.GpuAscii) return GpuAscii.export();
+    if(!canvas.width){ render(); }
+    canvas.toBlob(b=>{
+      const a=document.createElement('a');
+      a.download='halation-ascii-'+mode+'.png';
+      a.href=URL.createObjectURL(b);
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+      if(window.toast) toast('Exported ✦ halation-ascii-'+mode+'.png');
+    });
+    return true;
+  }
+
+  /* --- wire the panel --- */
+  document.addEventListener('click', e=>{
+    const a = e.target.closest('.achip');
+    if(!a) return;
+    document.querySelectorAll('.achip').forEach(c=>c.classList.remove('active'));
+    a.classList.add('active');
+    mode = a.dataset.m;
+    const gr = document.getElementById('glyphRow');
+    if(gr) gr.style.display = mode==='custom' ? '' : 'none';
+    const tr = document.getElementById('textRow');
+    if(tr) tr.style.display = mode==='manuscript' ? '' : 'none';
+    if(mode==='custom') buildCustomRamp();
+    render();
+    if(MODES[mode] && MODES[mode].anim) startAnim(); else stopAnim();
+    if(window.GpuAscii) GpuAscii.update(mode);
+  });
+  document.querySelectorAll('.chip[data-f]').forEach(ch=>{
+    ch.addEventListener('click', ()=>{ ch.dataset.f==='ascii' ? open() : close(); });
+  });
+  const cs=document.getElementById('colsSlider');
+  if(cs) cs.addEventListener('input', ()=>{ cols=+cs.value; const v=document.getElementById('colsVal'); if(v) v.textContent=cols; render(); });
+  const gi=document.getElementById('glyphInput');
+  if(gi){ let d; gi.addEventListener('input', ()=>{ clearTimeout(d); d=setTimeout(()=>{ glyphs=gi.value||'@'; buildCustomRamp(); if(mode==='custom') render(); },250); }); }
+  /* re-render when a new picture is loaded */
+  new MutationObserver(()=>{ if(isActive() && !aside) render(); })
+    .observe(document.getElementById('stageMedia'), {childList:true});
+
+  buildCustomRamp();
+  const pi=document.getElementById('proseInput');
+  if(pi){ let d; pi.addEventListener('input', ()=>{ clearTimeout(d); d=setTimeout(()=>{ proseText=pi.value||'@'; buildProse(); if(mode==='manuscript') render(); },300); }); }
+  window.HalationASCII = { open, close, sync, setAside, render, export: doExport };
+})();
